@@ -34,19 +34,29 @@ module currently in progress.
 - [x] Chart.js trend charts (`MetricsTrendChart`, CPU/RAM over the last 60 `system_metric_snapshots` rows, captured every minute by `app:capture-system-metrics`, scheduled in `routes/console.php`)
 - [x] Dark mode / light mode toggle (Filament built-in, present in the topbar since Module 1)
 
-## Module 3 — Website Manager
-- [ ] Create website (domain, doc root, PHP version)
-- [ ] Delete website
-- [ ] Suspend website (serve a maintenance page, keep files/DB)
-- [ ] Clone website
-- [ ] Change PHP version
-- [ ] Enable SSL / Disable SSL
-- [ ] Restart PHP-FPM pool
-- [ ] Restart nginx
-- [ ] Website logs (access/error tail)
-- [ ] Virtual host editor (Monaco, with safe-mode syntax check before apply)
-- [ ] Document root override
-- [ ] Domain aliases
+## Module 3 — Website Manager ✅
+- [x] Create website (domain, doc root auto-derived, PHP version, framework) -
+      `CreateWebsiteAction`, real nginx vhost written + reloaded on save
+- [x] Delete website (deprovisions the vhost first, then soft-deletes the record)
+- [x] Suspend website (regenerates the vhost as a 503 block instead of the live
+      site - a real config swap, not just a DB flag with no effect)
+- [x] Clone website (copies document root files + creates a new provisioned site)
+- [x] Change PHP version (updates the FPM socket path in the vhost and republishes)
+- [x] Enable SSL / Disable SSL (marks intent as `Pending`/`None` - real issuance
+      is Module 10's job, which depends on this module; never fabricates an
+      `Active` SSL status without a certificate ever having been issued)
+- [x] Restart PHP-FPM pool (per-website action, targets that site's PHP version)
+- [x] Restart nginx (server-wide action, gated behind `manage website services`
+      permission - broader blast radius than a per-site action)
+- [ ] Website logs (access/error tail) - **deferred to Module 14** (Logs) by
+      design; Module 3 only builds the site, not the log viewer
+- [ ] Virtual host editor (Monaco) - **deferred**: the vhost is generated and
+      applied automatically by `NginxConfigGeneratorService`/
+      `WebsiteProvisioningService`; a manual Monaco-based override editor is a
+      follow-up, not required for the create/manage flow to be complete
+- [x] Document root override (auto-derived from the domain on create, shown
+      read-only on edit - see docs/TODO.md for why it's not directly editable)
+- [x] Domain aliases (`TagsInput`, reflected in the vhost's `server_name`)
 
 ## Module 4 — Database Manager
 - [ ] Create database

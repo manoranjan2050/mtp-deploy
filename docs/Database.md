@@ -5,7 +5,7 @@ All tables use unsigned bigint auto-increment primary keys and `timestamps()` un
 noted. Soft deletes (`deleted_at`) are used on user-facing aggregates that support
 recovery (sites, databases, backups) but not on pure log/audit tables.
 
-This document is added to incrementally as each module is built. Only Module 1's
+This document is added to incrementally as each module is built. Modules 1–3's
 tables are final; later modules are sketched for forward-compatibility and will be
 refined when their module starts.
 
@@ -73,17 +73,57 @@ Populated every minute by `php artisan app:capture-system-metrics`
 line chart; no other module reads this table (no model relationships needed beyond
 the plain `App\Models\SystemMetricSnapshot`).
 
+## Module 3 — Website Manager ✅ (as built)
+
+### `servers`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| name | string | |
+| hostname | string nullable | |
+| ssh_host | string nullable | |
+| ssh_port | unsigned smallint default 22 | |
+| ssh_user | string nullable | |
+| ssh_private_key | text nullable | encrypted cast; unused until Module 18 |
+| is_local | boolean default false | the one seeded row (`ServerSeeder`) has this true - every module through 17 operates against it |
+| status | string, cast to `App\Enums\ServerStatus` | pending/connected/unreachable |
+| os | string nullable | `PHP_OS_FAMILY` for the local row |
+| php_versions | json nullable | selectable PHP versions for websites on this server; falls back to `['8.2','8.3','8.4']` when empty (`Server::availablePhpVersions()`) |
+| created_by | fk users, nullOnDelete | |
+| timestamps | | |
+
+### `websites`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| server_id | fk servers, cascadeOnDelete | |
+| name | string | |
+| domain | string unique | immutable after create in the UI - changing it needs delete + recreate (Module 3 doesn't support in-place domain moves) |
+| aliases | json nullable | extra `server_name` entries in the generated vhost |
+| document_root | string | auto-derived from `config('mtp.sites_root')."/{$domain}"` on create, never user-entered |
+| php_version | string | e.g. `"8.3"` - drives the vhost's `fastcgi_pass` socket path |
+| framework | string, cast to `App\Enums\WebsiteFramework` default `laravel` | laravel/plain-php/static; determines the `/public` suffix on the served path |
+| status | string, cast to `App\Enums\WebsiteStatus` default `active` | active/suspended - suspending swaps the *actual* vhost content to a 503 block, not just a cosmetic flag |
+| ssl_status | string, cast to `App\Enums\SslStatus` default `none` | none/pending/active/expired - Module 3 only ever sets none/pending (real issuance is Module 10) |
+| created_by | fk users, nullOnDelete | drives `WebsitePolicy`'s developer-scoping ("assigned sites" simplified to "created_by = self" - see `database/seeders/RoleSeeder.php`) |
+| timestamps, soft deletes | | |
+
+**Model default gotcha (recurring across this project):** `Website`'s
+`framework`/`status`/`ssl_status` all have DB-level defaults but Eloquent doesn't
+hydrate those onto a freshly-created, unrefreshed instance - a `match()` against the
+enum-cast attribute throws `UnhandledMatchError` until the row is fetched fresh. Same
+root cause as `User::is_active` in Module 2. Fixed with an in-memory
+`protected $attributes = [...]` default on the model matching the migration's own
+defaults - do this for every new model with a DB column default.
+
+### `system_command` activity log entries
+Not a new table - `App\Services\System\SystemCommandService` (the only class allowed
+to construct a `Symfony\Component\Process\Process`, per docs/Architecture.md) logs to
+the existing `activity_log` table under log name `system-command`, once before
+running a whitelisted operation and once after with the exit code and captured
+output/error (truncated to 4000 chars).
+
 ## Forward-Looking Schema (sketched, subject to change per-module)
-
-### `servers` (Module 18, present from Module 1 as `is_local` singleton row)
-id, name, hostname, ssh_host, ssh_port, ssh_user, ssh_private_key (encrypted),
-is_local (bool), status (enum: pending/connected/unreachable), os, php_versions
-(json), created_by, timestamps.
-
-### `websites` (Module 3)
-id, server_id (fk servers), name, domain, aliases (json), document_root, php_version,
-framework (enum: laravel/plain-php/static), status (enum: active/suspended),
-ssl_status (enum: none/pending/active/expired), created_by, timestamps, soft deletes.
 
 ### `databases` / `database_users` (Module 4)
 `databases`: id, server_id, website_id nullable, name, charset, collation, status,

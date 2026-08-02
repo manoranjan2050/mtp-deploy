@@ -7,9 +7,11 @@ namespace App\Providers;
 use App\Listeners\Auth\AssignSuperAdminRoleOnFirstRegistration;
 use App\Listeners\Auth\RecordLastLogin;
 use App\Models\User;
+use App\Models\Website;
 use App\Policies\ActivityPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
+use App\Policies\WebsitePolicy;
 use Filament\Auth\Events\Registered;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
@@ -42,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Activity::class, ActivityPolicy::class);
+        Gate::policy(Website::class, WebsitePolicy::class);
 
         Gate::before(fn (User $user, string $ability): ?true => $user->hasRole('super-admin') ? true : null);
     }

@@ -11,8 +11,8 @@
                     <span class="text-sm text-gray-500 dark:text-gray-400">
                         {{ str($service)->replace('_', ' ')->title() }}
                     </span>
-                    <x-filament::badge :color="$status->color()">
-                        {{ $status->label() }}
+                    <x-filament::badge :color="$status->getColor()">
+                        {{ $status->getLabel() }}
                     </x-filament::badge>
                 </div>
             @endforeach

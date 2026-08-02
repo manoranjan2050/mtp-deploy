@@ -30,11 +30,30 @@ class RoleSeeder extends Seeder
             'suspend users',
             'view roles',
             'view activity log',
+            'view websites',
+            'create websites',
+            'update websites',
+            'delete websites',
+            'manage website services',
         ]);
 
-        // developer/viewer hold no Module 1 permissions - they gain
-        // resource-scoped permissions starting with Module 3 (Website Manager).
-        Role::findOrCreate('developer', 'web');
-        Role::findOrCreate('viewer', 'web');
+        // Developer manages websites they created (scoped in WebsitePolicy, not
+        // here - "assigned sites" per docs/Security.md is simplified to
+        // "created_by = self" for now; a real per-site assignment pivot table
+        // is a reasonable future refinement, not needed yet). No user
+        // management, and no "manage website services" - restarting nginx/PHP
+        // affects every site on the server, too broad a blast radius for a
+        // per-site role.
+        $developer = Role::findOrCreate('developer', 'web');
+        $developer->syncPermissions([
+            'view websites',
+            'create websites',
+            'update websites',
+        ]);
+
+        $viewer = Role::findOrCreate('viewer', 'web');
+        $viewer->syncPermissions([
+            'view websites',
+        ]);
     }
 }

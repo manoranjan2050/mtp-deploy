@@ -55,6 +55,34 @@ single source of truth for current state.
 - The scheduler (`routes/console.php`) isn't running by default under `php artisan
   serve` - run `php artisan schedule:work` alongside it (or `schedule:run` in a
   loop) to actually populate `system_metric_snapshots` every minute locally.
+- `App\Enums\WhitelistedOperation` (Module 3) covers `nginx`/`systemctl` commands
+  that don't exist on Windows - `SystemCommandService::run()` still actually
+  attempts the `Process` call (no OS branch) and reports the real failure via
+  `SystemCommandResult::successful = false`, same honesty principle as the metrics
+  services. `WebsiteProvisioningService`'s file writes (vhost configs, document
+  roots) go through `config('mtp.*')` paths, not hardcoded `/etc/nginx` - tests
+  point these at a temp directory (see
+  `tests/Feature/Websites/WebsiteProvisioningServiceTest.php`). If you manually
+  click through the panel here, `config('mtp.nginx_sites_available_path')`
+  defaults to the real `/etc/nginx/sites-available`, which on Windows resolves to
+  `C:\etc\nginx\sites-available` (harmless, but clean it up - it's not a real
+  system path here).
+
+## A recurring bug class - check this on every new model
+
+**Eloquent does not hydrate DB-level column defaults onto a freshly-created,
+in-memory model instance** - only a re-fetch from the database does. If a
+migration has `->default(...)` on a column and the model doesn't explicitly set
+that field on create, `$model->thatColumn` reads `null` in memory even though the
+actual DB row has the real default. This has caused a real `TypeError` or
+`UnhandledMatchError` twice already:
+- `User::canAccessPanel(): bool` on `is_active` (Module 2)
+- `NginxConfigGeneratorService`'s `match ($website->status)` on
+  `status`/`ssl_status`/`framework` (Module 3)
+
+**Fix pattern**: add a `protected $attributes = [...]` array to the model matching
+the migration's defaults exactly. Do this proactively for every new model with a
+DB column default - don't wait for it to surface as a bug.
 
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every

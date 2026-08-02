@@ -163,6 +163,103 @@ docs/Architecture.md and CLAUDE.md for the full explanation:**
 - [x] `vendor/bin/pint` clean
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
 
+## Done — Module 3: Website Manager
+
+### Schema
+- [x] `servers` migration + `App\Models\Server` (`is_local` singleton, seeded by
+      `ServerSeeder`; `availablePhpVersions()` falls back to `['8.2','8.3','8.4']`)
+- [x] `websites` migration + `App\Models\Website` (soft deletes, `LogsActivity`)
+- [x] `App\Enums\ServerStatus`, `WebsiteStatus`, `WebsiteFramework`, `SslStatus` -
+      all implement Filament's `HasLabel`/`HasColor` contracts so
+      `->options(Enum::class)` and `->badge()` render correctly without manual
+      `->color()`/label-mapping closures (see the bug below for what happens
+      when you forget this)
+- [x] `config/mtp.php`: `nginx_sites_available_path`, `nginx_sites_enabled_path`,
+      `sites_root` - overridable so tests (and this Windows dev box) never touch
+      real system paths
+
+### Backend
+- [x] `App\Enums\WhitelistedOperation` - the fixed, closed set of shell operations
+      (`ReloadNginx`, `TestNginxConfig`, `RestartPhpFpm`) the app is ever allowed
+      to run; adding a new privileged capability means adding a new case here,
+      not a new ad-hoc `Process` call somewhere
+- [x] `App\Services\System\SystemCommandService` - the *only* class allowed to
+      construct a `Symfony\Process`; logs before/after via the activity log
+      (`system-command` log name) per docs/Security.md
+- [x] `App\Services\Websites\NginxConfigGeneratorService` - pure string
+      generation (no I/O), dispatches on `Website::status` so a suspended site
+      always gets a 503 block, never accidentally the live config
+- [x] `App\Services\Websites\WebsiteProvisioningService` - the I/O side:
+      writes/removes the vhost file + symlink, creates the document root,
+      calls `SystemCommandService` to test+reload nginx
+- [x] Actions: `CreateWebsiteAction`, `DeleteWebsiteAction`, `SuspendWebsiteAction`,
+      `CloneWebsiteAction`, `ChangePhpVersionAction`, `ToggleSslAction`,
+      `RestartPhpAction`, `RestartNginxAction`
+- [x] `WebsitePolicy` - admin/super-admin manage every site; `developer` only
+      manages sites they created (`created_by = self` - "assigned sites" per
+      docs/Security.md simplified for now, see `RoleSeeder` comment); `viewer`
+      read-only; `manageServices` (restart nginx/PHP) gated separately since
+      restarting nginx affects every site on the server
+- [x] 5 new permissions (`view/create/update/delete websites`,
+      `manage website services`), wired into `admin`/`developer`/`viewer` roles
+
+### Filament / UI
+- [x] `WebsiteResource`: create/edit/list, developer-scoped `getEloquentQuery()`
+      (defense in depth alongside the policy - a developer doesn't just get
+      blocked from acting on others' sites, they don't see them in the list)
+- [x] Custom `CreateWebsite`/`EditWebsite` pages that call the Actions/
+      provisioning service instead of raw Eloquent create/update, so every save
+      keeps the on-disk vhost in sync with the DB record
+- [x] Table actions: Suspend/Reinstate, Clone (new-domain modal), Change PHP
+      version, Enable/Disable SSL, Restart PHP (per-site), Restart nginx
+      (header action, server-wide)
+- [x] Domain/framework locked on edit (changing either needs delete + recreate -
+      not yet supported); document root shown read-only, never hand-entered
+
+### Tests (`tests/Feature/Websites/`, `tests/Unit/Services/Websites/`, 21 new)
+- [x] `NginxConfigGeneratorService`: active/suspended/Laravel-vs-static output,
+      fully deterministic (no I/O)
+- [x] `WebsiteProvisioningService`: real file writes/symlinks/deletes against a
+      temp directory (never the real `/etc/nginx`) - provision, deprovision,
+      republish
+- [x] All 8 website Actions, including file-copy verification for Clone
+- [x] `WebsitePolicy`: developer scoping (own sites only), viewer read-only,
+      admin full access, `manageServices` restricted to admin/super-admin
+- [x] `CreateWebsitePageTest` - exercises the **real Filament page** via
+      `Livewire::test()`, not just the Action directly (see the bug below -
+      this is what actually caught it)
+
+### Bugs found via this module and fixed
+- [x] Same `is_active`-class bug as Module 2, now on `Website`:
+      `status`/`ssl_status`/`framework` all have DB defaults that don't hydrate
+      onto a freshly-created, unrefreshed instance, so
+      `NginxConfigGeneratorService`'s `match ($website->status)` threw
+      `UnhandledMatchError`. Fixed with an in-memory `$attributes` default on
+      `Website`, same pattern as `User`. **This is now a recurring class of bug
+      in this project - check every new model with a DB column default.**
+- [x] `CreateWebsite::handleRecordCreation()` called
+      `WebsiteFramework::from($data['framework'])`, but Filament's `Select`
+      already casts the form value to the enum instance when
+      `->options(EnumClass::class)` is used - calling `::from()` again threw a
+      `TypeError`. Only caught once a test exercised the real Filament page
+      (`CreateWebsitePageTest`) rather than calling `CreateWebsiteAction`
+      directly - a reminder that Action-level tests alone don't cover
+      Filament's own data-casting behavior.
+- [x] Enum options (`WebsiteFramework`, etc.) rendered raw case names
+      ("PlainPhp") in Filament `Select`/`badge()` fields until each enum
+      implemented `Filament\Support\Contracts\HasLabel`/`HasColor` - a custom
+      `label()`/`color()` method alone is invisible to Filament's automatic
+      enum integration; it must be `getLabel()`/`getColor()` matching the
+      interface. Retrofitted onto all pre-existing enums too (`ServerStatus`,
+      `ServiceStatus` from Module 2).
+
+### Wrap-up
+- [x] `php artisan test` green (54 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] Manually verified in browser: full create-website flow end to end,
+      including a real generated nginx vhost file written to disk
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
+
 ## Up Next
-- [ ] Module 3 — Website Manager (see docs/Roadmap.md)
+- [ ] Module 4 — Database Manager (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

@@ -23,6 +23,11 @@ class PermissionSeeder extends Seeder
         'update roles',
         'delete roles',
         'view activity log',
+        'view websites',
+        'create websites',
+        'update websites',
+        'delete websites',
+        'manage website services',
     ];
 
     public function run(): void
