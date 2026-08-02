@@ -6,7 +6,8 @@ flight, then the relevant [docs/](docs) file for the module you're touching.
 
 ## What this project is
 A self-hosted server management + deployment platform for Laravel/PHP (Forge/Ploi/
-CloudPanel-style), built in Laravel 12 + Filament v4. Full mission in
+CloudPanel-style), built in Laravel 12 + Filament v5.7 (the spec said v4 — bumped to
+v5 for a real unpatched-CVE reason, see docs/Architecture.md). Full mission in
 [docs/Vision.md](docs/Vision.md).
 
 ## The one rule that matters most
@@ -28,7 +29,10 @@ single source of truth for current state.
   cd "/c/Program Files/Ampps/mysql/bin"
   nohup ./mysqld.exe --defaults-file="/c/Program Files/Ampps/mysql/my.ini" > /tmp/mysqld.log 2>&1 &
   ```
-  Root has no password. Database name: `mtpdeploy`.
+  Root has no password but only has a `localhost` grant, not `127.0.0.1` — Laravel's
+  TCP connection needs a real grant. A dedicated `mtpdeploy` app user (not root) was
+  created for both hosts with password `mtpdeploy_local_dev`; that's what `.env`
+  uses. Database name: `mtpdeploy`.
 - Redis is **not installed** in this dev environment. `.env` currently uses the
   `database` driver for cache/queue/session. Switch to `redis` once it's available
   locally, and definitely before any production deployment (Supervisor/queue

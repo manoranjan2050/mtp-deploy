@@ -8,7 +8,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 
 | # | Module | Status | Depends on |
 |---|--------|--------|------------|
-| 1 | Authentication (login, register, 2FA, profile, roles, permissions, sessions, API tokens, activity logs) | 🟨 | — |
+| 1 | Authentication (login, register, 2FA, profile, roles, permissions, sessions, API tokens, activity logs) | ✅ | — |
 | 2 | Dashboard (system stats, service status, charts) | ⬜ | 1 |
 | 3 | Website Manager (vhosts, SSL toggle, clone, suspend, PHP version, logs) | ⬜ | 1, 2 |
 | 4 | Database Manager (create/drop DB & users, privileges, backup/restore, phpMyAdmin) | ⬜ | 1, 3 |
@@ -30,7 +30,10 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 1 — Authentication.** See [TODO.md](../TODO.md) for the granular checklist.
+**Module 2 — Dashboard.** Module 1 (Authentication) is complete - 22 passing feature
+tests, Pint clean, manually smoke-tested. See [TODO.md](../TODO.md) for the granular
+checklist and the stack deviations made during Module 1 (Filament v5/Livewire 4
+instead of v4/3, for a real unpatched-CVE reason - see docs/Architecture.md).
 
 ## Working Agreement
 - Do not start a module's Filament resources until its migrations + models + policies

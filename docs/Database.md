@@ -9,7 +9,7 @@ This document is added to incrementally as each module is built. Only Module 1's
 tables are final; later modules are sketched for forward-compatibility and will be
 refined when their module starts.
 
-## Module 1 — Authentication
+## Module 1 — Authentication ✅ (as built)
 
 ### `users`
 | Column | Type | Notes |
@@ -19,24 +19,37 @@ refined when their module starts.
 | email | string unique | |
 | email_verified_at | timestamp nullable | |
 | password | string | hashed |
-| two_factor_secret | text nullable | encrypted cast |
-| two_factor_recovery_codes | text nullable | encrypted cast |
-| two_factor_confirmed_at | timestamp nullable | |
+| app_authentication_secret | text nullable | encrypted cast; Filament's native MFA column name (not `two_factor_secret` — see docs/Architecture.md on why Filament's built-in MFA is used instead of a hand-rolled package) |
+| app_authentication_recovery_codes | text nullable | encrypted array cast |
 | is_active | boolean default true | suspend a user without deleting |
-| last_login_at | timestamp nullable | |
-| last_login_ip | string nullable | |
+| last_login_at | timestamp nullable | set by `RecordLastLogin` listener on `Illuminate\Auth\Events\Login` |
+| last_login_ip | string(45) nullable | |
 | remember_token | string nullable | |
 | timestamps, soft deletes | | |
 
 ### `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`
 Standard `spatie/laravel-permission` tables (teams feature off — single-tenant panel
-for now). Seeded roles: `super-admin`, `admin`, `developer`, `viewer`.
+for now). Seeded roles: `super-admin` (no direct permissions, bypassed entirely via
+`Gate::before`), `admin`, `developer`, `viewer`. Ten permissions seeded, covering
+users/roles/activity-log (see `database/seeders/PermissionSeeder.php`).
 
 ### `sessions`
 Laravel's built-in `sessions` table (database session driver) doubles as the source
-for the "active sessions" UI in the user profile (Module 1 requirement). Displayed
-fields: `ip_address`, `user_agent`, `last_activity`, with a "this device" flag and a
-per-row "log out" action (`DELETE` the row) and a "log out other devices" bulk action.
+for the "active sessions" UI (`App\Filament\Pages\Profile\Sessions`). Wrapped by a
+read-only `App\Models\Session` Eloquent model since Filament's table component
+requires an Eloquent query, not a raw `DB::table()` query builder. Displayed fields:
+`ip_address`, `user_agent`, `last_activity`, with a "this device" flag and a per-row
+"log out" action plus a "log out other devices" header action.
+
+### `personal_access_tokens`
+Laravel Sanctum's built-in table, surfaced via `App\Filament\Pages\Profile\ApiTokens`.
+Abilities are drawn from `App\Enums\ApiTokenAbility` (`profile:read`,
+`sessions:write`, `*`) — grows as later modules add their own API surface.
+
+### `activity_log`
+`spatie/laravel-activitylog`'s built-in table, surfaced read-only via
+`App\Filament\Resources\ActivityLogs\ActivityLogResource` (no create/edit/delete
+pages registered - see docs/Security.md on audit logs being append-only).
 
 ### `personal_access_tokens`
 Laravel Sanctum's built-in table, surfaced in the profile as "API Tokens" with

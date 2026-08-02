@@ -6,8 +6,8 @@
 |---|---|
 | Language | PHP 8.4+ (built/tested against 8.2 in this dev environment — see note below) |
 | Framework | Laravel 12 |
-| Admin UI | Filament v4 |
-| Reactive UI | Livewire 3 + Alpine.js |
+| Admin UI | **Filament v5.7** (spec said v4 — see note below) |
+| Reactive UI | **Livewire v4.3** (spec said 3 — see note below) + Alpine.js |
 | CSS | Tailwind CSS (via Filament) |
 | Database | MariaDB (MySQL-protocol compatible; dev env runs MySQL 8.0.46 via AMPPS) |
 | Cache / Queue backing | Redis (falls back to `database` driver until Redis is installed in an environment) |
@@ -15,19 +15,37 @@
 | Process supervision (managed sites) | Supervisor |
 | DNS / CDN / Tunnels | Cloudflare API |
 | Shell execution | Symfony Process (`symfony/process`) |
-| Auth / RBAC | Laravel Fortify actions (custom, not the package) + `spatie/laravel-permission` |
+| Auth / RBAC | Filament's built-in auth pages/actions + `spatie/laravel-permission` |
 | Audit trail | `spatie/laravel-activitylog` |
 | API auth | Laravel Sanctum |
-| 2FA | `pragmarx/google2fa-laravel` (TOTP), enrolled/managed inside the Filament panel |
+| 2FA | Filament's **built-in** Multi-Factor Authentication (App/TOTP provider) — not a hand-rolled package, see note below |
 | Charts | Chart.js (via a thin Livewire/Alpine wrapper) |
 | Code editor (File Manager, vhost editor) | Monaco Editor |
 | Terminal | xterm.js + a Laravel Echo/WebSocket bridge to a PTY-over-SSH process |
 
 > **PHP version note:** the spec targets PHP 8.4+. The current dev machine only has
-> PHP 8.2.31 available (via AMPPS). Laravel 12 and Filament v4 both fully support
+> PHP 8.2.31 available (via AMPPS). Laravel 12 and Filament v5 both fully support
 > 8.2, so development proceeds on 8.2 with `composer.json` constrained to `^8.2` for
 > now. Bump to `^8.4` and re-test before production deployment once a matching PHP
 > runtime is available.
+
+> **Filament v5 / Livewire v4 note:** the spec asked for Filament v4 and Livewire 3.
+> Every published Livewire 3.x release (through v3.8.3, the latest) is blocked by
+> Composer's security-advisory policy — CVE-2025-54068 (unauthenticated RCE via
+> component property hydration) plus two related advisories, none patched in any
+> 3.x tag. Filament v5 depends on Livewire ^4.1, which is patched, and is the direct
+> successor to Filament v4 from the same maintainer with the same panel/resource
+> APIs used throughout this codebase. Shipping a known-vulnerable dependency to
+> satisfy an exact version number would contradict this project's own Security.md,
+> so v5/v4 was used instead. Filament v4 (`^4.0`) remains installable on its own if
+> a future constraint forces a downgrade, but would still require Livewire 3.x and
+> therefore the same unpatched RCE exposure.
+
+> **2FA note:** Filament v4/v5 ships a native Multi-Factor Authentication framework
+> (`Filament\Auth\MultiFactor\App\AppAuthentication`) with TOTP enrollment (QR code),
+> recovery codes, and a panel-level `isRequired` closure — used directly instead of
+> integrating `pragmarx/google2fa-laravel` by hand, which would have duplicated
+> functionality Filament already provides and tests upstream.
 
 ## Layered Architecture
 

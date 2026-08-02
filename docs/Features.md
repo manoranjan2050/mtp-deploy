@@ -4,17 +4,20 @@ Full feature checklist by module. This mirrors [Roadmap.md](Roadmap.md) but at
 feature granularity; [TODO.md](../TODO.md) is the live, checkable version of the
 module currently in progress.
 
-## Module 1 — Authentication
-- [ ] Login (email + password, rate-limited)
-- [ ] Register (bootstrap-only: allowed while zero users exist, then admin-invite only)
-- [ ] Forgot Password (signed reset link, no account enumeration)
-- [ ] Two-Factor Authentication (TOTP enroll/confirm/disable, recovery codes)
-- [ ] User Profile (name/email/password/avatar, timezone)
-- [ ] Roles (super-admin, admin, developer, viewer)
-- [ ] Permissions (granular, spatie/laravel-permission backed, per-Filament-resource)
-- [ ] Sessions (list active sessions, revoke one, revoke all others)
-- [ ] API Tokens (create scoped token, list, revoke)
-- [ ] Activity Logs (searchable audit trail of who did what, when)
+## Module 1 — Authentication ✅
+- [x] Login (email + password, rate-limited, Filament built-in)
+- [x] Register (bootstrap-only: allowed while zero users exist, then admin-invite only
+      — enforced at both the page and the listener level, see docs/Security.md)
+- [x] Forgot Password (Filament built-in signed reset link, no account enumeration)
+- [x] Two-Factor Authentication (Filament's built-in App/TOTP MFA provider: enroll,
+      confirm, disable, recovery codes; required org-wide for admin/super-admin roles)
+- [x] User Profile (name/email/password via Filament's built-in EditProfile page —
+      avatar/timezone fields not added, deferred as a small gap, not core to Module 1)
+- [x] Roles (super-admin, admin, developer, viewer)
+- [x] Permissions (granular, spatie/laravel-permission backed, per-Filament-resource)
+- [x] Sessions (list active sessions, revoke one, revoke all others, "this device" flag)
+- [x] API Tokens (create scoped token, list, revoke — scopes in `App\Enums\ApiTokenAbility`)
+- [x] Activity Logs (searchable/filterable audit trail, read-only resource)
 
 ## Module 2 — Dashboard
 - [ ] CPU usage widget (live, polling)

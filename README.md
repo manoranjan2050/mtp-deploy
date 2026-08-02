@@ -15,17 +15,24 @@ See [docs/Vision.md](docs/Vision.md) for the full mission and non-goals.
 [docs/Roadmap.md](docs/Roadmap.md) for module order and [TODO.md](TODO.md) for the
 live checklist of what's currently being built.
 
-**Currently in progress: Module 1 — Authentication.**
+**Module 1 (Authentication) is complete.** Currently in progress: Module 2 —
+Dashboard.
 
 ## Tech Stack
 
-Laravel 12 · PHP 8.2+ (8.4+ targeted, see note below) · Filament v4 · Livewire 3 ·
-Alpine.js · Tailwind CSS · MariaDB · Redis · nginx · Supervisor · Cloudflare API ·
-Symfony Process · Spatie packages · Chart.js · Monaco Editor · xterm.js
+Laravel 12 · PHP 8.2+ (8.4+ targeted, see note below) · Filament v5.7 (v4 targeted,
+see note below) · Livewire v4.3 · Alpine.js · Tailwind CSS · MariaDB · Redis ·
+nginx · Supervisor · Cloudflare API · Symfony Process · Spatie packages ·
+Chart.js · Monaco Editor · xterm.js
 
 > This dev environment currently has PHP 8.2.31 available (via AMPPS), not 8.4.
-> Laravel 12 and Filament v4 fully support 8.2, so development proceeds on it; bump
+> Laravel 12 and Filament v5 fully support 8.2, so development proceeds on it; bump
 > `composer.json`'s PHP constraint and re-test before a production PHP 8.4 rollout.
+>
+> Filament v5 / Livewire v4 are used instead of the originally-targeted v4/v3: every
+> published Livewire 3.x release is blocked by an unpatched RCE advisory
+> (CVE-2025-54068 + two related CVEs). See [docs/Architecture.md](docs/Architecture.md)
+> for the full explanation.
 
 ## Documentation
 
