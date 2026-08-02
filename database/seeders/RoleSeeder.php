@@ -35,6 +35,10 @@ class RoleSeeder extends Seeder
             'update websites',
             'delete websites',
             'manage website services',
+            'view databases',
+            'create databases',
+            'delete databases',
+            'manage database privileges',
         ]);
 
         // Developer manages websites they created (scoped in WebsitePolicy, not
@@ -43,17 +47,24 @@ class RoleSeeder extends Seeder
         // is a reasonable future refinement, not needed yet). No user
         // management, and no "manage website services" - restarting nginx/PHP
         // affects every site on the server, too broad a blast radius for a
-        // per-site role.
+        // per-site role. Similarly, a developer can create/delete databases for
+        // their own sites but cannot grant/revoke privileges - that's a wider
+        // security lever (a misconfigured GRANT can expose one tenant's data to
+        // another's DB user) reserved for admin/super-admin.
         $developer = Role::findOrCreate('developer', 'web');
         $developer->syncPermissions([
             'view websites',
             'create websites',
             'update websites',
+            'view databases',
+            'create databases',
+            'delete databases',
         ]);
 
         $viewer = Role::findOrCreate('viewer', 'web');
         $viewer->syncPermissions([
             'view websites',
+            'view databases',
         ]);
     }
 }

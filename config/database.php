@@ -84,6 +84,25 @@ return [
             ]) : [],
         ],
 
+        // Used only by Module 4's DatabaseManagerService to provision/drop
+        // customer databases and users - deliberately separate from the app's
+        // own scoped `mysql` connection above, which only has grants on its
+        // own database. See docs/Database.md and CLAUDE.md.
+        'mysql_admin' => [
+            'driver' => 'mysql',
+            'host' => env('DB_ADMIN_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_ADMIN_PORT', env('DB_PORT', '3306')),
+            'database' => null,
+            'username' => env('DB_ADMIN_USERNAME', 'root'),
+            'password' => env('DB_ADMIN_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),

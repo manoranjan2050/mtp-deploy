@@ -24,4 +24,16 @@ return [
 
     'sites_root' => env('MTP_SITES_ROOT', '/var/www'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Database Manager (Module 4)
+    |--------------------------------------------------------------------------
+    */
+
+    'mysqldump_path' => env('MYSQLDUMP_PATH', 'mysqldump'),
+
+    'mysql_cli_path' => env('MYSQL_CLI_PATH', 'mysql'),
+
+    'database_backups_path' => env('MTP_DATABASE_BACKUPS_PATH', storage_path('app/database-backups')),
+
 ];

@@ -11,7 +11,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 1 | Authentication (login, register, 2FA, profile, roles, permissions, sessions, API tokens, activity logs) | ✅ | — |
 | 2 | Dashboard (system stats, service status, charts) | ✅ | 1 |
 | 3 | Website Manager (vhosts, SSL toggle, clone, suspend, PHP version, logs) | ✅ | 1, 2 |
-| 4 | Database Manager (create/drop DB & users, privileges, backup/restore, phpMyAdmin) | ⬜ | 1, 3 |
+| 4 | Database Manager (create/drop DB & users, privileges, backup/restore, phpMyAdmin) | ✅ | 1, 3 |
 | 5 | Deployment (Git providers, webhook, deploy button, rollback, history) | ⬜ | 3 |
 | 6 | Laravel Deployment (composer/artisan pipeline steps) | ⬜ | 5 |
 | 7 | File Manager (browse/upload/download/zip/edit) | ⬜ | 3 |
@@ -30,18 +30,30 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 4 — Database Manager.** Modules 1–3 are complete - 54 passing tests, Pint
-clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
-made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
-unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
-project keeps hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a
+**Module 5 — Deployment.** Modules 1–4 are complete - 69 passing tests, Pint clean.
+See [TODO.md](../TODO.md) for the granular checklist, the stack deviations made
+during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real unpatched-CVE
+reason - see docs/Architecture.md), and a recurring class of bug this project keeps
+hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a
 freshly-created, unrefreshed model instance, so every model with a DB-level
 `->default(...)` needs a matching in-memory `protected $attributes = [...]` default
 (hit on `User::is_active` in Module 2, `Website::status`/`ssl_status`/`framework` in
 Module 3 - watch for this on every new model going forward).
 
-Module 3's "Website logs" checklist item is intentionally not built yet - real log
-tailing is Module 14's job; Module 3 only builds the site itself.
+Two checklist items deliberately deferred, not forgotten:
+- Module 3's "Website logs" - real log tailing is Module 14's job.
+- Module 4's "phpMyAdmin integration" - this dev machine doesn't have phpMyAdmin
+  installed; a real integration is just a configured launch-link/SSO hand-off, low
+  value to fake without a real phpMyAdmin instance to point at. Revisit once one is
+  available, or when a real target server is provisioned.
+
+Module 4 is also where this project first ran real destructive infrastructure
+commands as part of its own test suite (actual `CREATE`/`DROP DATABASE`,
+`CREATE`/`DROP USER`, `GRANT`/`REVOKE`, and a genuine `mysqldump`/`mysql` backup and
+restore round-trip against this dev machine's local MySQL) rather than working
+against files in a temp directory (Module 3) or reading read-only OS state
+(Module 2). Every test uses a uniquely-named throwaway database/user and cleans up
+in `tearDown()`.
 
 ## Working Agreement
 - Do not start a module's Filament resources until its migrations + models + policies

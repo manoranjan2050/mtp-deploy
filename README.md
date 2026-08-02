@@ -15,8 +15,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission and non-goals.
 [docs/Roadmap.md](docs/Roadmap.md) for module order and [TODO.md](TODO.md) for the
 live checklist of what's currently being built.
 
-**Modules 1 (Authentication), 2 (Dashboard), and 3 (Website Manager) are complete.**
-Currently in progress: Module 4 — Database Manager.
+**Modules 1 (Authentication), 2 (Dashboard), 3 (Website Manager), and 4 (Database
+Manager) are complete.** Currently in progress: Module 5 — Deployment.
 
 ## Tech Stack
 

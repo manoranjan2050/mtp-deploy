@@ -28,6 +28,10 @@ class PermissionSeeder extends Seeder
         'update websites',
         'delete websites',
         'manage website services',
+        'view databases',
+        'create databases',
+        'delete databases',
+        'manage database privileges',
     ];
 
     public function run(): void

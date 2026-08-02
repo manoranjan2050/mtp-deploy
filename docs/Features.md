@@ -58,14 +58,22 @@ module currently in progress.
       read-only on edit - see docs/TODO.md for why it's not directly editable)
 - [x] Domain aliases (`TagsInput`, reflected in the vhost's `server_name`)
 
-## Module 4 — Database Manager
-- [ ] Create database
-- [ ] Delete database
-- [ ] Backup (on-demand)
-- [ ] Restore
-- [ ] Create database user
-- [ ] Manage privileges (per-db grants)
-- [ ] phpMyAdmin integration (SSO hand-off or embedded)
+## Module 4 — Database Manager ✅
+- [x] Create database - real `CREATE DATABASE` via `DatabaseManagerService`
+      against the `mysql_admin` connection; the metadata row is only created if
+      the real statement succeeds (unlike Website, no phantom "intent" records)
+- [x] Delete database - real `DROP DATABASE`, then soft-deletes the record
+- [x] Backup (on-demand) - real `mysqldump`, credentials passed via a temporary
+      `--defaults-extra-file` (never as a CLI argument visible to other
+      processes)
+- [x] Restore - real `mysql` client fed the uploaded `.sql` via stdin
+- [x] Create database user - real `CREATE USER`
+- [x] Manage privileges (per-db grants) - real `GRANT`/`REVOKE`, admin-only
+      (developers can create/delete databases for their own sites but cannot
+      grant/revoke - see docs/Security.md)
+- [ ] phpMyAdmin integration - **deferred**: no phpMyAdmin instance exists to
+      integrate with on this dev machine; would just be a configured
+      launch-link/SSO hand-off once a real target is available
 
 ## Module 5 — Deployment
 - [ ] GitHub connection

@@ -5,7 +5,7 @@ All tables use unsigned bigint auto-increment primary keys and `timestamps()` un
 noted. Soft deletes (`deleted_at`) are used on user-facing aggregates that support
 recovery (sites, databases, backups) but not on pure log/audit tables.
 
-This document is added to incrementally as each module is built. Modules 1–3's
+This document is added to incrementally as each module is built. Modules 1–4's
 tables are final; later modules are sketched for forward-compatibility and will be
 refined when their module starts.
 
@@ -123,13 +123,70 @@ the existing `activity_log` table under log name `system-command`, once before
 running a whitelisted operation and once after with the exit code and captured
 output/error (truncated to 4000 chars).
 
-## Forward-Looking Schema (sketched, subject to change per-module)
+## Module 4 — Database Manager ✅ (as built)
 
-### `databases` / `database_users` (Module 4)
-`databases`: id, server_id, website_id nullable, name, charset, collation, status,
-timestamps, soft deletes.
-`database_users`: id, server_id, username, password (encrypted), host, timestamps.
-`database_user_database` (pivot): database_user_id, database_id, privileges (json).
+### `databases`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| server_id | fk servers, cascadeOnDelete | |
+| website_id | fk websites nullable, nullOnDelete | optional link, drives `DatabasePolicy`'s developer-scoping (same "created_by = self" pattern as `WebsitePolicy`, via the linked website's `created_by`) |
+| name | string unique | validated against `^[a-zA-Z0-9_]{1,64}$` before ever reaching SQL (see `DatabaseManagerService`) |
+| charset | string default `utf8mb4` | |
+| collation | string default `utf8mb4_unicode_ci` | |
+| status | string, cast to `App\Enums\DatabaseStatus` default `active` | active/restoring |
+| created_by | fk users, nullOnDelete | |
+| timestamps, soft deletes | | |
+
+**Unlike `Website`, this row is only ever created if the real `CREATE DATABASE`
+statement succeeds first** (`CreateDatabaseAction`) - a "database" record with no
+actual database behind it would be actively misleading, whereas a website can
+meaningfully exist as intent before nginx catches up.
+
+### `database_users`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| server_id | fk servers, cascadeOnDelete | |
+| username | string unique | validated the same way as database names |
+| password | text, encrypted cast | the real MySQL account's password, needed later for `mysqldump`/`mysql` option-file generation |
+| host | string default `%` | validated against `^[a-zA-Z0-9.%_-]{1,60}$` |
+| created_by | fk users, nullOnDelete | |
+| timestamps, soft deletes | | |
+
+### `database_user_database` (pivot)
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| database_user_id | fk database_users, cascadeOnDelete | |
+| database_id | fk databases, cascadeOnDelete | |
+| privileges | json | e.g. `["SELECT","INSERT"]`; requires a dedicated `App\Models\DatabaseUserDatabase` Pivot model with its own `casts()` - Eloquent does **not** auto-cast pivot attributes on the default anonymous pivot, and `sync()`/`attach()` with a plain PHP array fails with "Array to string conversion" without one |
+| timestamps | | unique on `(database_user_id, database_id)` |
+
+### Two PDO/MySQL gotchas found building `DatabaseManagerService`
+1. A `?` placeholder immediately after `@` (as in `` `user`@? ``) is not bound by
+   the MySQL PDO driver - it's read as a user-defined-variable reference, not "at
+   symbol then a parameter." The `host` part of `user@host` is validated against a
+   strict allowlist pattern and safely interpolated instead of bound.
+2. `CREATE USER ... IDENTIFIED BY ?` does not support a bound parameter at all -
+   it isn't a preparable DML statement, and MySQL returns a syntax error with the
+   placeholder left as a literal `?`. The password is escaped with
+   `PDO::quote()` and interpolated directly (still never raw/unescaped user
+   input).
+
+Confirmed against this dev machine's real MySQL 8.0.46 - see
+`tests/Unit/Services/Databases/DatabaseManagerServiceTest.php`.
+
+### `mysql_admin` connection
+A separate, more-privileged database connection (`config/database.php`) used only
+by `DatabaseManagerService`/`DatabaseBackupService` - the app's own `mysql`
+connection only has grants on its own `mtpdeploy` database. Configured via
+`DB_ADMIN_HOST`/`DB_ADMIN_PORT`/`DB_ADMIN_USERNAME`/`DB_ADMIN_PASSWORD`; on this dev
+machine, `root@127.0.0.1` with no password. Tests use the same real connection
+against uniquely-named throwaway databases/users, cleaned up in `tearDown()` - see
+CLAUDE.md.
+
+## Forward-Looking Schema (sketched, subject to change per-module)
 
 ### `deployments` (Module 5/6)
 id, website_id, provider (enum: github/gitlab/bitbucket/manual), repository, branch,

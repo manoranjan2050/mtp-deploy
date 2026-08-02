@@ -6,9 +6,13 @@ namespace App\Providers;
 
 use App\Listeners\Auth\AssignSuperAdminRoleOnFirstRegistration;
 use App\Listeners\Auth\RecordLastLogin;
+use App\Models\Database;
+use App\Models\DatabaseUser;
 use App\Models\User;
 use App\Models\Website;
 use App\Policies\ActivityPolicy;
+use App\Policies\DatabasePolicy;
+use App\Policies\DatabaseUserPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WebsitePolicy;
@@ -45,6 +49,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Activity::class, ActivityPolicy::class);
         Gate::policy(Website::class, WebsitePolicy::class);
+        Gate::policy(Database::class, DatabasePolicy::class);
+        Gate::policy(DatabaseUser::class, DatabaseUserPolicy::class);
 
         Gate::before(fn (User $user, string $ability): ?true => $user->hasRole('super-admin') ? true : null);
     }

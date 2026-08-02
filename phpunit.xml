@@ -26,6 +26,16 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
+        <!-- Module 4's DatabaseManagerService tests run real CREATE/DROP DATABASE
+             statements against this dev machine's actual local MySQL (via the
+             mysql_admin connection) - not mocked, since it's genuinely running
+             here. Tests use uniquely-named throwaway databases and clean up
+             after themselves, same approach as Module 3's temp-directory
+             filesystem tests. -->
+        <env name="DB_ADMIN_HOST" value="127.0.0.1"/>
+        <env name="DB_ADMIN_PORT" value="3306"/>
+        <env name="DB_ADMIN_USERNAME" value="root"/>
+        <env name="DB_ADMIN_PASSWORD" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

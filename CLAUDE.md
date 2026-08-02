@@ -29,10 +29,20 @@ single source of truth for current state.
   cd "/c/Program Files/Ampps/mysql/bin"
   nohup ./mysqld.exe --defaults-file="/c/Program Files/Ampps/mysql/my.ini" > /tmp/mysqld.log 2>&1 &
   ```
-  Root has no password but only has a `localhost` grant, not `127.0.0.1` — Laravel's
-  TCP connection needs a real grant. A dedicated `mtpdeploy` app user (not root) was
-  created for both hosts with password `mtpdeploy_local_dev`; that's what `.env`
-  uses. Database name: `mtpdeploy`.
+  Root has no password but only had a `localhost` grant, not `127.0.0.1` — Laravel's
+  TCP connection needs a real grant, so `root@127.0.0.1` was added too (no
+  password, matching `root@localhost`). A dedicated `mtpdeploy` app user (not root)
+  was created for both hosts with password `mtpdeploy_local_dev`; that's what
+  `.env`'s main `mysql` connection uses. Database name: `mtpdeploy`.
+- **Module 4 added a second, more-privileged `mysql_admin` connection**
+  (`config/database.php`, `DB_ADMIN_*` env vars) that uses `root@127.0.0.1` -
+  the app's own `mysql` connection only has grants on its own `mtpdeploy`
+  database, not enough to provision/drop *other* databases and users. Every
+  `DatabaseManagerService`/`DatabaseBackupService` test genuinely exercises
+  this connection against this machine's real MySQL (not mocked) - see the
+  note further down on the two PDO/MySQL gotchas that surfaced doing that.
+  `MYSQLDUMP_PATH`/`MYSQL_CLI_PATH` env vars point at the real AMPPS
+  `mysqldump.exe`/`mysql.exe`.
 - Redis is **not installed** in this dev environment. `.env` currently uses the
   `database` driver for cache/queue/session. Switch to `redis` once it's available
   locally, and definitely before any production deployment (Supervisor/queue
@@ -83,6 +93,26 @@ actual DB row has the real default. This has caused a real `TypeError` or
 **Fix pattern**: add a `protected $attributes = [...]` array to the model matching
 the migration's defaults exactly. Do this proactively for every new model with a
 DB column default - don't wait for it to surface as a bug.
+
+## Two PDO/MySQL gotchas (Module 4) - relevant to any future raw-SQL work
+
+1. A `?` placeholder immediately after `@` (as in `` `user`@? ``) is not bound by
+   the MySQL PDO driver - it's read as a user-defined-variable reference, not "at
+   symbol then a bindable placeholder," and produces a syntax error with the `?`
+   left as a literal character. Validate the value against a strict allowlist
+   pattern and interpolate it directly instead of binding it in that position.
+2. `CREATE USER ... IDENTIFIED BY ?` does not support a bound parameter at all -
+   it isn't a preparable DML statement. Use `PDO::quote()` for safe manual
+   interpolation of the value instead. Both were only found by running the real
+   statements against this machine's actual MySQL 8.0.46 in
+   `tests/Unit/Services/Databases/DatabaseManagerServiceTest.php` - a mocked
+   `DB::statement()` call would never have caught either.
+
+Also: Eloquent does **not** auto-cast pivot table attributes (e.g. a JSON column)
+on the default anonymous pivot - `sync()`/`attach()` with an array value fails with
+"Array to string conversion" unless the relationship uses a dedicated Pivot model
+(`->using(YourPivot::class)`) with its own `casts()`. See
+`App\Models\DatabaseUserDatabase`.
 
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every

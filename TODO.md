@@ -260,6 +260,100 @@ docs/Architecture.md and CLAUDE.md for the full explanation:**
       including a real generated nginx vhost file written to disk
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
 
+## Done — Module 4: Database Manager
+
+### Setup
+- [x] A dedicated `mtpdeploy` app DB user (Module 1) is scoped to its own
+      database only - Module 4 needed a separate, more-privileged connection
+      to provision/drop *other* databases. Granted `root@127.0.0.1` (matching
+      the existing `root@localhost`) and added a `mysql_admin` connection
+      (`config/database.php`, `DB_ADMIN_*` env vars) used only by
+      `DatabaseManagerService`/`DatabaseBackupService`.
+- [x] `MYSQLDUMP_PATH`/`MYSQL_CLI_PATH` env vars point at the real AMPPS
+      `mysqldump.exe`/`mysql.exe` on this machine.
+
+### Schema
+- [x] `databases`, `database_users`, `database_user_database` (pivot) migrations
+- [x] `App\Models\Database`, `DatabaseUser`, and a dedicated
+      `DatabaseUserDatabase` Pivot model (needed for the pivot's `privileges`
+      JSON column to actually cast - see the bug below)
+- [x] `App\Enums\DatabasePrivilege` (SELECT/INSERT/UPDATE/DELETE/CREATE/DROP/
+      ALTER/INDEX/ALL PRIVILEGES - a deliberate subset, nothing like FILE/SUPER
+      that reaches outside the granted database), `App\Enums\DatabaseStatus`
+
+### Backend
+- [x] `App\Services\Databases\DatabaseManagerService` - real
+      `CREATE`/`DROP DATABASE`, `CREATE`/`DROP USER`, `GRANT`/`REVOKE` against
+      the `mysql_admin` connection; every identifier (db/user names) validated
+      against a strict allowlist pattern before touching SQL, since PDO can't
+      bind identifiers in DDL
+- [x] `App\Services\Databases\DatabaseBackupService` - real `mysqldump`/`mysql`
+      client invocations via `Symfony\Process`, credentials passed through a
+      temporary `--defaults-extra-file` (never as a CLI arg visible to other
+      processes), deleted immediately after use
+- [x] Actions: `CreateDatabaseAction` (only creates the metadata row if the real
+      `CREATE DATABASE` succeeds - unlike Website, a phantom database record
+      would be actively misleading), `DeleteDatabaseAction`,
+      `CreateDatabaseUserAction`, `DeleteDatabaseUserAction`,
+      `UpdatePrivilegesAction`, `BackupDatabaseAction`, `RestoreDatabaseAction`
+- [x] `DatabasePolicy` (developer scoped to databases on their own websites,
+      same pattern as `WebsitePolicy`), `DatabaseUserPolicy` (every mutation
+      gated behind `manage database privileges` - a DB user account is a
+      broader security lever than one database, admin/super-admin only)
+- [x] 4 new permissions (`view/create/delete databases`,
+      `manage database privileges`), wired into roles
+
+### Filament / UI
+- [x] `DatabaseResource`: list + create only (no Edit - a database's
+      name/charset/collation aren't meaningfully editable after creation),
+      developer-scoped `getEloquentQuery()` via the linked website's
+      `created_by`
+- [x] Table actions: Backup (downloads nothing yet, just confirms the file was
+      written server-side), Restore (file upload → real `mysql` client restore,
+      uploaded temp file deleted after), Manage privileges (user + privilege
+      checklist modal), Delete (drops the real database first)
+- [x] `DatabaseUserResource`: list + create only (a MySQL password can't be
+      safely round-tripped through an edit form once set), shows each user's
+      linked databases as badges, Delete drops the real MySQL account
+
+### Tests (`tests/Unit/Services/Databases/`, `tests/Feature/Databases/`, 15 new)
+- [x] `DatabaseManagerServiceTest` - **real** `CREATE`/`DROP DATABASE`,
+      `CREATE`/`DROP USER`, `GRANT`/`REVOKE` against this dev machine's actual
+      local MySQL (not mocked), uniquely-named throwaway db/user per test,
+      cleaned up in `tearDown()`
+- [x] `DatabaseBackupServiceTest` - a genuine `mysqldump` → data loss →
+      `mysql`-client restore round trip, asserts the restored row is back
+- [x] `DatabaseActionsTest`, `DatabasePolicyTest` - Action orchestration and
+      authorization scoping, same patterns as Modules 1 and 3
+
+### Bugs found via this module and fixed
+- [x] `DatabaseManagerService` originally tried to bind the `host` part of
+      `` `user`@? `` as a PDO parameter - MySQL's driver reads `@?` as a
+      user-defined-variable reference, not "at symbol then placeholder,"
+      producing a syntax error with the `?` left completely unsubstituted.
+      Fixed by validating `host` against a strict allowlist pattern and
+      interpolating it directly instead of binding it.
+- [x] Even after fixing that, `CREATE USER ... IDENTIFIED BY ?` **still**
+      failed - MySQL's PDO driver does not support bound parameters in
+      `CREATE USER` at all (it isn't a preparable DML statement). Fixed with
+      `PDO::quote()` for safe manual interpolation of the password instead of
+      parameter binding. Both of these were only found by running the real
+      statements against this dev machine's actual MySQL - a mocked/faked
+      `DB::statement()` call in a test would never have caught either.
+- [x] `$user->databases()->syncWithoutDetaching([...['privileges' => [...]]])`
+      failed with "Array to string conversion" - Eloquent does not auto-cast
+      pivot table attributes on the default anonymous pivot. Fixed by creating
+      a dedicated `App\Models\DatabaseUserDatabase` Pivot model with its own
+      `casts()` and wiring `->using(DatabaseUserDatabase::class)` into both
+      sides of the relationship.
+
+### Wrap-up
+- [x] `php artisan test` green (69 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] Manually verified in browser: created a real database through the panel,
+      confirmed it exists via the MySQL CLI, cleaned up afterward
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
+
 ## Up Next
-- [ ] Module 4 — Database Manager (see docs/Roadmap.md)
+- [ ] Module 5 — Deployment (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md
