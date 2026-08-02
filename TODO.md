@@ -437,6 +437,52 @@ docs/Architecture.md and CLAUDE.md for the full explanation:**
       a real `git clone` against that repo
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
 
+## Done — Module 6: Laravel Deployment
+
+### Schema
+- [x] `deployment_steps` migration + `App\Models\DeploymentStep`, `Deployment::steps()`
+- [x] `App\Enums\DeploymentStepStatus` (pending/running/success/failed/skipped -
+      `Skipped` reserved for a possible future opt-out UI, unused today)
+
+### Backend
+- [x] `App\Services\Deployments\LaravelDeploymentPipelineService` - real
+      `composer install` + `artisan storage:link/config:cache/route:cache/
+      view:cache/migrate --force/queue:restart`, one `DeploymentStep` row per
+      step, halts on first failure
+- [x] Wired into `GitDeploymentService::deploy()`: after a successful git
+      checkout, Laravel-framework websites run the pipeline before the
+      deployment is marked `Success`; Plain PHP/Static sites skip it entirely
+- [x] Rollback gets the same pipeline treatment as a normal deploy (it's just
+      "deploy this other commit" - that old commit's dependencies need
+      reinstalling too), not a bare git reset
+
+### Filament / UI
+- [x] `DeploymentInfolist` shows a "Laravel deployment steps" section
+      (name/status/output per step) when steps exist, hidden for non-Laravel
+      deployments
+
+### Tests (`tests/Feature/Deployments/LaravelDeploymentPipelineServiceTest.php`, 2 new)
+- [x] All 7 steps run in order and succeed - against a real `composer install`
+      (trivial `composer.json`, no dependencies, no network needed) and the
+      real PHP interpreter running a fake `artisan` script
+- [x] A failing step (simulated `migrate` failure) halts every subsequent step -
+      `queue:restart` never runs, proven by asserting its `DeploymentStep` row
+      doesn't exist
+
+### Fallout in Module 5's own tests
+- [x] `GitDeploymentServiceTest`'s fixture websites were `WebsiteFramework::
+      Laravel` with a fixture repo that has no `composer.json`/`artisan` - once
+      the pipeline started auto-running for Laravel sites, those tests failed
+      (pipeline's `composer install` step has nothing to install against).
+      Switched those tests to `WebsiteFramework::PlainPhp`, since they test git
+      mechanics specifically, not the Laravel pipeline - which now has its own
+      dedicated test suite instead.
+
+### Wrap-up
+- [x] `php artisan test` green (85 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
+
 ## Up Next
-- [ ] Module 6 — Laravel Deployment (see docs/Roadmap.md)
+- [ ] Module 7 — File Manager (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

@@ -5,7 +5,7 @@ All tables use unsigned bigint auto-increment primary keys and `timestamps()` un
 noted. Soft deletes (`deleted_at`) are used on user-facing aggregates that support
 recovery (sites, databases, backups) but not on pure log/audit tables.
 
-This document is added to incrementally as each module is built. Modules 1–5's
+This document is added to incrementally as each module is built. Modules 1–6's
 tables are final; later modules are sketched for forward-compatibility and will be
 refined when their module starts.
 
@@ -233,11 +233,32 @@ registered in `bootstrap/app.php`'s `withRouting()`. `POST
 skip both) - see `App\Http\Controllers\DeploymentWebhookController` and
 docs/Security.md.
 
-## Forward-Looking Schema (sketched, subject to change per-module)
+## Module 6 — Laravel Deployment ✅ (as built)
 
-### `deployment_steps` (Module 6)
-id, deployment_id, name (e.g. `composer install`, `artisan migrate`), status, output,
-started_at, finished_at, `order` column.
+### `deployment_steps`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| deployment_id | fk deployments, cascadeOnDelete | |
+| name | string | e.g. `composer install`, `artisan migrate` |
+| status | string, cast to `App\Enums\DeploymentStepStatus` default `pending` | pending/running/success/failed/skipped |
+| output | longtext nullable | combined stdout+stderr for that one step |
+| order | unsigned int | execution order (0-indexed) |
+| started_at / finished_at | timestamp nullable | |
+| timestamps | | no soft deletes - same append-only reasoning as `deployments` |
+
+`App\Services\Deployments\LaravelDeploymentPipelineService::run()` creates one row
+per step, in order, and halts on the first failure (subsequent steps are simply
+never created, not marked "skipped" - `Skipped` exists in the enum for a possible
+future opt-out UI, unused today). Only runs for `WebsiteFramework::Laravel`
+websites; Plain PHP/Static sites skip the pipeline entirely and a deployment's
+success depends solely on `GitDeploymentService`'s git checkout succeeding.
+
+Runs `artisan` via `PHP_BINARY` (the currently-running PHP interpreter), not a
+per-website PHP version binary - see docs/Roadmap.md's Module 6 note on why that's
+an acceptable simplification for now.
+
+## Forward-Looking Schema (sketched, subject to change per-module)
 
 ### `ssl_certificates` (Module 10)
 id, website_id, type (enum: lets_encrypt/custom), domains (json), issued_at,

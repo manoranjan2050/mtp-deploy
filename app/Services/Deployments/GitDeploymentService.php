@@ -6,6 +6,7 @@ namespace App\Services\Deployments;
 
 use App\Enums\DeploymentStatus;
 use App\Enums\DeploymentTrigger;
+use App\Enums\WebsiteFramework;
 use App\Models\Deployment;
 use App\Models\User;
 use App\Models\Website;
@@ -20,13 +21,18 @@ use Symfony\Component\Process\Process;
  * tests/Feature/Deployments/), so the whole clone -> deploy -> rollback cycle
  * is exercised for real without needing network access to GitHub/GitLab.
  *
- * This only covers the "get the right commit checked out" half of deployment
- * (Module 5). The Laravel-specific pipeline (composer install, artisan
- * migrate, etc.) is Module 6's job and layers on top of a successful deploy
- * here.
+ * Once the right commit is checked out, Laravel websites also run the
+ * composer/artisan pipeline (Module 6's `LaravelDeploymentPipelineService`) -
+ * a rollback is "deploy this other commit," so it gets the same pipeline
+ * treatment (that old commit's dependencies need reinstalling, migrations
+ * re-running, etc.), not just a bare git reset.
  */
 class GitDeploymentService
 {
+    public function __construct(
+        private readonly LaravelDeploymentPipelineService $pipeline,
+    ) {}
+
     public function deploy(
         Website $website,
         DeploymentTrigger $trigger,
@@ -57,10 +63,13 @@ class GitDeploymentService
             $this->checkout($website, $deployment, $target);
 
             $commitSha = $this->currentCommitSha($website);
+            $deployment->update(['commit_sha' => $commitSha]);
+
+            $pipelineSucceeded = $website->framework !== WebsiteFramework::Laravel
+                || $this->pipeline->run($deployment);
 
             $deployment->update([
-                'commit_sha' => $commitSha,
-                'status' => DeploymentStatus::Success,
+                'status' => $pipelineSucceeded ? DeploymentStatus::Success : DeploymentStatus::Failed,
                 'finished_at' => now(),
             ]);
         } catch (ProcessFailedException $exception) {

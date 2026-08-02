@@ -96,17 +96,23 @@ module currently in progress.
 - [x] Deployment history with full step logs - `DeploymentResource`, every git
       command and its output appended to the deployment's `log`
 
-## Module 6 — Laravel Deployment
-- [ ] `composer install` step
-- [ ] `composer update` step (opt-in)
-- [ ] `artisan optimize`
-- [ ] `artisan migrate --force`
-- [ ] `artisan queue:restart`
-- [ ] `artisan storage:link`
-- [ ] `artisan config:cache`
-- [ ] `artisan route:cache`
-- [ ] `artisan view:cache`
-- [ ] File/directory permission fix-up (storage, bootstrap/cache)
+## Module 6 — Laravel Deployment ✅
+- [x] `composer install` step
+- [ ] `composer update` step (opt-in) - **not built**; only the standard
+      `composer install` runs today, no UI toggle for an update variant
+- [x] `artisan optimize` equivalent - implemented as separate, individually
+      tracked steps (`config:cache`/`route:cache`/`view:cache`) rather than one
+      opaque `artisan optimize` call, so a failure shows exactly which cache
+      step broke instead of just "optimize failed"
+- [x] `artisan migrate --force`
+- [x] `artisan queue:restart`
+- [x] `artisan storage:link`
+- [x] `artisan config:cache`
+- [x] `artisan route:cache`
+- [x] `artisan view:cache`
+- [ ] File/directory permission fix-up (storage, bootstrap/cache) - **not
+      built**; meaningless to test on this Windows dev box (Unix file modes
+      don't apply) and not yet implemented even as a Linux-conditional step
 
 ## Module 7 — File Manager
 - [ ] Upload / Download

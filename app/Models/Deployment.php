@@ -9,6 +9,7 @@ use App\Enums\DeploymentStatus;
 use App\Enums\DeploymentTrigger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Deployment extends Model
 {
@@ -50,6 +51,11 @@ class Deployment extends Model
     public function triggeredByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'triggered_by_user_id');
+    }
+
+    public function steps(): HasMany
+    {
+        return $this->hasMany(DeploymentStep::class)->orderBy('order');
     }
 
     public function appendLog(string $line): void

@@ -137,7 +137,13 @@ class GitDeploymentServiceTest extends TestCase
             'domain' => 'example-'.uniqid().'.test',
             'document_root' => $this->documentRoot,
             'php_version' => '8.3',
-            'framework' => WebsiteFramework::Laravel,
+            // Plain PHP, not Laravel - these tests exercise git mechanics only
+            // (clone/fetch/checkout/rollback). The fixture repo has no
+            // composer.json/artisan, so a Laravel-framework website would
+            // fail Module 6's pipeline step and report Failed instead of
+            // Success - that's covered by its own test suite instead
+            // (LaravelDeploymentPipelineServiceTest).
+            'framework' => WebsiteFramework::PlainPhp,
             'repository_url' => $this->remotePath,
             'git_branch' => 'main',
         ], $overrides));

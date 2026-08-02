@@ -87,6 +87,19 @@ single source of truth for current state.
   real local bare repository fixture (`git init --bare`) instead of a live
   GitHub/GitLab/Bitbucket remote - see
   `tests/Feature/Deployments/GitDeploymentServiceTest.php`.
+- Real `composer` is also available (`C:\ProgramData\ComposerSetup\bin`).
+  `LaravelDeploymentPipelineService` (Module 6) uses `PHP_BINARY` for `artisan`
+  calls - the currently-running interpreter, not a per-website PHP version -
+  and runs against a trivial throwaway `composer.json` (no dependencies) plus a
+  fake `artisan` script in tests, so nothing needs network access or a genuine
+  Laravel install to verify the pipeline's ordering/output-capture/
+  stop-on-first-failure behavior. Any `WebsiteFramework::Laravel` fixture used
+  in a *different* module's test (e.g. Module 5's git tests) now also triggers
+  this pipeline automatically after a successful checkout - if that fixture
+  repo has no real `composer.json`/`artisan`, the deployment will report
+  `Failed` even though the git operation itself succeeded. Use
+  `WebsiteFramework::PlainPhp` for tests that aren't specifically about the
+  Laravel pipeline (see `GitDeploymentServiceTest`'s `makeWebsite()`).
 - This session's browser-automation limitations (documented above for the
   dashboard's `x-intersect` widgets) also affect Filament's confirmation-modal
   actions (`->requiresConfirmation()`) - clicking the triggering button doesn't
