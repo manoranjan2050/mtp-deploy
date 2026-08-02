@@ -9,7 +9,9 @@ use App\Enums\WebsiteFramework;
 use App\Enums\WebsiteStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -28,7 +30,14 @@ class Website extends Model
         'framework',
         'status',
         'ssl_status',
+        'repository_url',
+        'git_branch',
+        'auto_deploy',
         'created_by',
+    ];
+
+    protected $hidden = [
+        'webhook_token',
     ];
 
     /**
@@ -46,7 +55,16 @@ class Website extends Model
         'framework' => 'laravel',
         'status' => 'active',
         'ssl_status' => 'none',
+        'git_branch' => 'main',
+        'auto_deploy' => false,
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Website $website): void {
+            $website->webhook_token ??= Str::random(40);
+        });
+    }
 
     protected function casts(): array
     {
@@ -55,6 +73,7 @@ class Website extends Model
             'framework' => WebsiteFramework::class,
             'status' => WebsiteStatus::class,
             'ssl_status' => SslStatus::class,
+            'auto_deploy' => 'boolean',
         ];
     }
 
@@ -66,6 +85,16 @@ class Website extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function deployments(): HasMany
+    {
+        return $this->hasMany(Deployment::class)->latest('id');
+    }
+
+    public function latestSuccessfulDeployment(): ?Deployment
+    {
+        return $this->deployments()->where('status', 'success')->first();
     }
 
     /**

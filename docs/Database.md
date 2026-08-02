@@ -5,7 +5,7 @@ All tables use unsigned bigint auto-increment primary keys and `timestamps()` un
 noted. Soft deletes (`deleted_at`) are used on user-facing aggregates that support
 recovery (sites, databases, backups) but not on pure log/audit tables.
 
-This document is added to incrementally as each module is built. Modules 1–4's
+This document is added to incrementally as each module is built. Modules 1–5's
 tables are final; later modules are sketched for forward-compatibility and will be
 refined when their module starts.
 
@@ -186,12 +186,54 @@ machine, `root@127.0.0.1` with no password. Tests use the same real connection
 against uniquely-named throwaway databases/users, cleaned up in `tearDown()` - see
 CLAUDE.md.
 
-## Forward-Looking Schema (sketched, subject to change per-module)
+## Module 5 — Deployment ✅ (as built)
 
-### `deployments` (Module 5/6)
-id, website_id, provider (enum: github/gitlab/bitbucket/manual), repository, branch,
-commit_sha, status (enum: pending/running/success/failed/rolled_back), triggered_by
-(enum: manual/webhook), started_at, finished_at, log (longtext), timestamps.
+### `websites` additions
+| Column | Type | Notes |
+|---|---|---|
+| repository_url | string nullable | plain git URL (HTTPS or SSH) - no OAuth/provider-specific storage |
+| git_branch | string default `main` | |
+| webhook_token | string(64) unique nullable | random 40 chars, auto-generated in `Website::booted()`'s `creating` hook; doubles as the HMAC shared secret for the webhook |
+| auto_deploy | boolean default false | gates whether the webhook actually triggers a deployment |
+
+### `deployments`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| website_id | fk websites, cascadeOnDelete | |
+| provider | string, cast to `App\Enums\DeploymentProvider` default `manual` | github/gitlab/bitbucket/manual - currently informational only, since Module 5 clones via plain git URL regardless of provider |
+| branch | string | |
+| commit_sha | string(40) nullable | null until a deploy actually succeeds |
+| status | string, cast to `App\Enums\DeploymentStatus` default `pending` | pending/running/success/failed/rolled_back |
+| triggered_by | string, cast to `App\Enums\DeploymentTrigger` default `manual` | manual/webhook |
+| triggered_by_user_id | fk users nullable, nullOnDelete | null for webhook-triggered deployments |
+| started_at / finished_at | timestamp nullable | |
+| log | longtext nullable | every git command run + its output, appended as the deployment progresses (`Deployment::appendLog()`) |
+| timestamps | | no soft deletes - deployment history is append-only, same as `activity_log` |
+
+### `GitDeploymentService` - two real bugs found running against actual git
+1. `git fetch` only updates the **remote-tracking** ref (`origin/<branch>`) - it
+   never moves the local branch pointer of the same name. Resetting to the bare
+   branch name after fetching silently redeploys whatever was checked out at
+   clone time, forever. A plain deploy resets to `origin/{branch}`; rollback
+   passes an explicit commit SHA instead, used as-is.
+2. A redundant `git checkout <ref>` before `git reset --hard <ref>` was
+   unnecessary - `git reset --hard` alone moves both HEAD and the working tree
+   to the target, checkout or not.
+
+Confirmed against a real local bare-repository fixture (not GitHub) - see
+`tests/Feature/Deployments/GitDeploymentServiceTest.php`, which runs an actual
+clone → deploy → second-commit deploy → rollback cycle and asserts on real file
+contents at each step.
+
+### Webhook route
+`routes/api.php` (new - Laravel 12's skeleton only wires `web` routes by default),
+registered in `bootstrap/app.php`'s `withRouting()`. `POST
+/api/webhooks/deploy/{webhookToken}`, unauthenticated by Sanctum/CSRF (API routes
+skip both) - see `App\Http\Controllers\DeploymentWebhookController` and
+docs/Security.md.
+
+## Forward-Looking Schema (sketched, subject to change per-module)
 
 ### `deployment_steps` (Module 6)
 id, deployment_id, name (e.g. `composer install`, `artisan migrate`), status, output,

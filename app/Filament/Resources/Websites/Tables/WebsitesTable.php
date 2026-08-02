@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Websites\Tables;
 
+use App\Actions\Deployments\TriggerDeploymentAction;
 use App\Actions\Websites\ChangePhpVersionAction;
 use App\Actions\Websites\CloneWebsiteAction;
 use App\Actions\Websites\RestartNginxAction;
 use App\Actions\Websites\RestartPhpAction;
 use App\Actions\Websites\SuspendWebsiteAction;
 use App\Actions\Websites\ToggleSslAction;
+use App\Enums\DeploymentTrigger;
 use App\Enums\SslStatus;
 use App\Enums\WebsiteStatus;
 use App\Models\Website;
@@ -66,7 +68,7 @@ class WebsitesTable
             ->recordActions([
                 Action::make('suspend')
                     ->label(fn (Website $record): string => $record->status === WebsiteStatus::Active ? 'Suspend' : 'Reinstate')
-                    ->icon(fn (Website $record): string => $record->status === WebsiteStatus::Active ? Heroicon::OutlinedNoSymbol : Heroicon::OutlinedCheckCircle)
+                    ->icon(fn (Website $record): Heroicon => $record->status === WebsiteStatus::Active ? Heroicon::OutlinedNoSymbol : Heroicon::OutlinedCheckCircle)
                     ->color(fn (Website $record): string => $record->status === WebsiteStatus::Active ? 'danger' : 'success')
                     ->requiresConfirmation()
                     ->authorize(fn (Website $record): bool => auth()->user()->can('suspend', $record))
@@ -127,6 +129,23 @@ class WebsitesTable
                             : $action->disable($record);
 
                         Notification::make()->title('SSL status updated')->success()->send();
+                    }),
+                Action::make('deploy')
+                    ->label('Deploy')
+                    ->icon(Heroicon::OutlinedRocketLaunch)
+                    ->color('primary')
+                    ->visible(fn (Website $record): bool => filled($record->repository_url))
+                    ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
+                    ->requiresConfirmation()
+                    ->modalDescription(fn (Website $record): string => "Deploys the latest commit on \"{$record->git_branch}\".")
+                    ->action(function (Website $record): void {
+                        $deployment = app(TriggerDeploymentAction::class)->handle($record, DeploymentTrigger::Manual, auth()->user());
+
+                        Notification::make()
+                            ->title($deployment->status->getLabel())
+                            ->success($deployment->status->value === 'success')
+                            ->danger($deployment->status->value === 'failed')
+                            ->send();
                     }),
                 Action::make('restartPhp')
                     ->label('Restart PHP')

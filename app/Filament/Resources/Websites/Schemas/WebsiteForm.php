@@ -10,6 +10,8 @@ use App\Models\Website;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class WebsiteForm
@@ -60,6 +62,28 @@ class WebsiteForm
                     ->dehydrated(false)
                     ->visibleOn('edit')
                     ->helperText('Set automatically from the domain when the website is created.'),
+                Section::make('Deployment')
+                    ->visibleOn('edit')
+                    ->components([
+                        TextInput::make('repository_url')
+                            ->label('Repository URL')
+                            ->helperText('SSH or HTTPS git URL, e.g. git@github.com:user/repo.git'),
+                        TextInput::make('git_branch')
+                            ->label('Branch')
+                            ->default('main')
+                            ->required(),
+                        Toggle::make('auto_deploy')
+                            ->label('Auto-deploy on push')
+                            ->helperText('When enabled, the webhook URL below triggers a deployment automatically.'),
+                        TextInput::make('webhook_url')
+                            ->label('Webhook URL')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn (?Website $record): ?string => $record
+                                ? route('webhooks.deploy', $record->webhook_token)
+                                : null)
+                            ->helperText('Configure this as the webhook URL in your GitHub/GitLab/Bitbucket repo settings.'),
+                    ]),
             ]);
     }
 }

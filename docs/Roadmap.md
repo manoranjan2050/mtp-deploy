@@ -12,7 +12,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 2 | Dashboard (system stats, service status, charts) | ✅ | 1 |
 | 3 | Website Manager (vhosts, SSL toggle, clone, suspend, PHP version, logs) | ✅ | 1, 2 |
 | 4 | Database Manager (create/drop DB & users, privileges, backup/restore, phpMyAdmin) | ✅ | 1, 3 |
-| 5 | Deployment (Git providers, webhook, deploy button, rollback, history) | ⬜ | 3 |
+| 5 | Deployment (Git providers, webhook, deploy button, rollback, history) | ✅ | 3 |
 | 6 | Laravel Deployment (composer/artisan pipeline steps) | ⬜ | 5 |
 | 7 | File Manager (browse/upload/download/zip/edit) | ⬜ | 3 |
 | 8 | Terminal (browser SSH via xterm.js) | ⬜ | 1 |
@@ -30,22 +30,25 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 5 — Deployment.** Modules 1–4 are complete - 69 passing tests, Pint clean.
-See [TODO.md](../TODO.md) for the granular checklist, the stack deviations made
-during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real unpatched-CVE
-reason - see docs/Architecture.md), and a recurring class of bug this project keeps
-hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a
+**Module 6 — Laravel Deployment.** Modules 1–5 are complete - 83 passing tests,
+Pint clean. See [TODO.md](../TODO.md) for the granular checklist, the stack
+deviations made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
+unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
+project keeps hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a
 freshly-created, unrefreshed model instance, so every model with a DB-level
 `->default(...)` needs a matching in-memory `protected $attributes = [...]` default
 (hit on `User::is_active` in Module 2, `Website::status`/`ssl_status`/`framework` in
 Module 3 - watch for this on every new model going forward).
 
-Two checklist items deliberately deferred, not forgotten:
+Checklist items deliberately deferred, not forgotten:
 - Module 3's "Website logs" - real log tailing is Module 14's job.
 - Module 4's "phpMyAdmin integration" - this dev machine doesn't have phpMyAdmin
   installed; a real integration is just a configured launch-link/SSO hand-off, low
   value to fake without a real phpMyAdmin instance to point at. Revisit once one is
   available, or when a real target server is provisioned.
+- Module 5 covers "get the right git commit checked out" only - the actual
+  Laravel-specific pipeline (`composer install`, `artisan migrate`, etc.) is
+  Module 6's job, layered on top of a successful `GitDeploymentService::deploy()`.
 
 Module 4 is also where this project first ran real destructive infrastructure
 commands as part of its own test suite (actual `CREATE`/`DROP DATABASE`,
@@ -53,7 +56,18 @@ commands as part of its own test suite (actual `CREATE`/`DROP DATABASE`,
 restore round-trip against this dev machine's local MySQL) rather than working
 against files in a temp directory (Module 3) or reading read-only OS state
 (Module 2). Every test uses a uniquely-named throwaway database/user and cleans up
-in `tearDown()`.
+in `tearDown()`. Module 5 continued this pattern with real `git` operations against
+a local bare-repository fixture standing in for GitHub.
+
+Module 5 also surfaced a bug from Module 3 that had gone unnoticed until now: a
+Filament action's `->icon()` closure was type-hinted to return `string` but
+actually returned a `Heroicon` enum instance, throwing a `TypeError` the moment the
+Websites list page rendered a real row (icon closures are evaluated lazily, only
+when Filament applies them to an actual record - no test had rendered the list page
+with a row present until Module 5's browser verification did). Fixed, and now
+covered by `tests/Feature/Websites/ListWebsitesPageTest.php` - a reminder that
+Action/Policy-level tests don't substitute for at least one test per resource that
+renders its real list page with a real row.
 
 ## Working Agreement
 - Do not start a module's Filament resources until its migrations + models + policies

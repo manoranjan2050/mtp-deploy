@@ -75,16 +75,26 @@ module currently in progress.
       integrate with on this dev machine; would just be a configured
       launch-link/SSO hand-off once a real target is available
 
-## Module 5 — Deployment
-- [ ] GitHub connection
-- [ ] GitLab connection
-- [ ] Bitbucket connection
-- [ ] Private repository support (deploy key / PAT)
-- [ ] Deploy button (manual trigger)
-- [ ] Webhook receiver (HMAC verified)
-- [ ] Auto deploy on push
-- [ ] Rollback to previous successful deployment
-- [ ] Deployment history with full step logs
+## Module 5 — Deployment ✅
+- [x] GitHub / GitLab / Bitbucket - implemented generically via a plain git
+      repository URL (`Website::repository_url`) rather than provider-specific
+      OAuth "connect your account" flows; since all three speak the same git
+      protocol and webhook HMAC scheme, one implementation covers all three.
+      A native "browse your GitHub repos" OAuth connector is a reasonable
+      future enhancement, not built here.
+- [~] Private repository support - works if the target server's SSH key is
+      already configured for the git host (a real SSH URL clones exactly like
+      a public one); there's no in-panel "generate/manage a deploy key" UI yet
+- [x] Deploy button (manual trigger) - `WebsitesTable`'s Deploy action
+- [x] Webhook receiver (HMAC verified) - `DeploymentWebhookController`,
+      per-website token in the URL + optional `X-Hub-Signature-256`
+      verification
+- [x] Auto deploy on push - gated behind the website's `auto_deploy` toggle
+- [x] Rollback to previous successful deployment - `RollbackDeploymentAction`,
+      re-checks-out the exact prior commit as a new, distinctly-marked
+      deployment (never mutates history)
+- [x] Deployment history with full step logs - `DeploymentResource`, every git
+      command and its output appended to the deployment's `log`
 
 ## Module 6 — Laravel Deployment
 - [ ] `composer install` step

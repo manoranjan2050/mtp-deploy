@@ -76,7 +76,23 @@ single source of truth for current state.
   click through the panel here, `config('mtp.nginx_sites_available_path')`
   defaults to the real `/etc/nginx/sites-available`, which on Windows resolves to
   `C:\etc\nginx\sites-available` (harmless, but clean it up - it's not a real
-  system path here).
+  system path here). **Module 5's `config('mtp.sites_root')` (default
+  `/var/www`) has the identical quirk** - a manual (non-test) deploy against the
+  default config resolves to a Windows path relative to the current process's
+  working directory, not a real `/var/www`. Same story: harmless locally, tests
+  already override it to a temp directory, don't chase it as a bug.
+- Real `git` is available on this machine (`git version 2.54.0`) and is used
+  directly - `GitDeploymentService` isn't OS-gated the way the metrics services
+  are, since `git` itself is cross-platform. Tests point `repository_url` at a
+  real local bare repository fixture (`git init --bare`) instead of a live
+  GitHub/GitLab/Bitbucket remote - see
+  `tests/Feature/Deployments/GitDeploymentServiceTest.php`.
+- This session's browser-automation limitations (documented above for the
+  dashboard's `x-intersect` widgets) also affect Filament's confirmation-modal
+  actions (`->requiresConfirmation()`) - clicking the triggering button doesn't
+  reliably produce an inspectable dialog here. Verify those actions via
+  `Livewire::test()` or by calling the underlying Action directly (e.g. via
+  `php artisan tinker`) instead of chasing the modal in this browser pane.
 
 ## A recurring bug class - check this on every new model
 
@@ -113,6 +129,21 @@ on the default anonymous pivot - `sync()`/`attach()` with an array value fails w
 "Array to string conversion" unless the relationship uses a dedicated Pivot model
 (`->using(YourPivot::class)`) with its own `casts()`. See
 `App\Models\DatabaseUserDatabase`.
+
+## Filament action closures: type-hint the real return type (Module 5)
+
+A `->icon()`/`->color()`/`->label()` closure on a Filament `Action` is evaluated
+**lazily**, only when Filament actually renders that action against a real
+record - not when the resource class is loaded, not in any test that stops at
+submitting a form. `WebsitesTable`'s "suspend" action shipped in Module 3 with
+`->icon(fn (Website $record): string => ... Heroicon::OutlinedNoSymbol ...)` - a
+`string` return type hint on a closure that returns an enum instance - and it sat
+undetected through two more modules until Module 5's browser check loaded
+`/admin/websites` with an actual row in it. **Every Filament resource needs at
+least one test that renders its real list page with a real record present**, not
+just Action-level or Policy-level tests - see
+`tests/Feature/Websites/ListWebsitesPageTest.php` for the pattern now used to
+catch this going forward.
 
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every

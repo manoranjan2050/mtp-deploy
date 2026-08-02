@@ -354,6 +354,89 @@ docs/Architecture.md and CLAUDE.md for the full explanation:**
       confirmed it exists via the MySQL CLI, cleaned up afterward
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
 
+## Done — Module 5: Deployment
+
+### Schema
+- [x] `websites` gets `repository_url`, `git_branch` (default `main`),
+      `webhook_token` (unique, auto-generated on create), `auto_deploy`
+- [x] `deployments` migration + `App\Models\Deployment` (`appendLog()` helper,
+      no soft deletes - history is append-only)
+- [x] `App\Enums\DeploymentProvider`, `DeploymentStatus`, `DeploymentTrigger`
+
+### Backend
+- [x] `App\Services\Deployments\GitDeploymentService` - real `git`
+      clone/fetch/reset/rev-parse against `Website::document_root`; in tests,
+      `repository_url` points at a real local bare git repo fixture, not a mock
+- [x] `TriggerDeploymentAction`, `RollbackDeploymentAction` (re-deploys the
+      target's exact commit as a *new* deployment, marked `RolledBack` rather
+      than mutating history)
+- [x] `App\Http\Controllers\DeploymentWebhookController` - the one legitimate
+      plain-Controller use per docs/FolderStructure.md; per-website token in
+      the URL + optional GitHub-style `X-Hub-Signature-256` HMAC verification
+- [x] New `routes/api.php` (Laravel 12's skeleton only wires `web` by
+      default), registered in `bootstrap/app.php` - API routes skip CSRF,
+      which the webhook needs since GitHub can't send our CSRF token
+- [x] `DeploymentPolicy` - entirely derived from the parent website's policy
+      (anyone who can update the website can deploy/roll back it)
+
+### Filament / UI
+- [x] `WebsiteForm`'s new "Deployment" section (edit-only): repository URL,
+      branch, auto-deploy toggle, read-only webhook URL
+- [x] `WebsitesTable`'s Deploy action (visible only once a repository URL is set)
+- [x] `DeploymentResource` - read-only (no create/edit, same reasoning as
+      `DatabaseResource`/`DatabaseUserResource`: nothing to hand-edit), with a
+      Rollback row action gated to `Success` deployments only
+
+### Tests (`tests/Feature/Deployments/`, 18 new)
+- [x] `GitDeploymentServiceTest` - a **real** clone → deploy → second-commit
+      deploy → rollback cycle against a local bare git repo fixture, asserting
+      on actual file contents at each step, not mocked
+- [x] `DeploymentWebhookControllerTest` - unknown token (404), auto-deploy
+      disabled (403), wrong signature (403), valid/absent signature (200 +
+      deployment row created)
+- [x] `DeploymentPolicyTest` - same developer/viewer/admin scoping pattern as
+      Website and Database
+- [x] `ListWebsitesPageTest` - renders the real Websites list page with a real
+      row (see the bug below - this is exactly what caught it)
+
+### Bugs found via this module and fixed
+- [x] `GitDeploymentService` originally did `git checkout {branch}; git reset
+      --hard {branch}` after fetching - `git fetch` only updates the
+      remote-tracking ref (`origin/{branch}`), never the local branch pointer
+      of the same name, so a second deploy silently redeployed the *original*
+      clone-time commit forever. Fixed by resetting to `origin/{branch}`
+      (or, for rollback, an explicit commit SHA) instead of the bare branch
+      name. Only caught because the test suite deploys twice and asserts the
+      commit actually changed - a single-deploy test would have passed anyway.
+- [x] `DeploymentWebhookController::__invoke()` was type-hinted to return
+      `Illuminate\Http\Response`, but `response()->json(...)` returns
+      `JsonResponse` - a sibling class, not a subclass, so PHP threw a
+      `TypeError` on every successful webhook call. Fixed by widening the
+      return type to `Symfony\Component\HttpFoundation\Response`, the common
+      ancestor both actually extend.
+- [x] **A Module 3 bug, only now surfacing**: `WebsitesTable`'s "suspend"
+      action had an `->icon()` closure type-hinted `fn (Website $record):
+      string`, but it returned `Heroicon::OutlinedNoSymbol`/
+      `Heroicon::OutlinedCheckCircle` - enum instances, not strings. Icon
+      closures are evaluated lazily, only when Filament renders an actual
+      table row, so this passed every previous test (none rendered the list
+      page with a row present) and only threw when this module's browser
+      verification loaded `/admin/websites` with a real website in it. Fixed
+      the type hint; added `ListWebsitesPageTest` as a standing regression
+      guard, and confirmed no other `->icon()`/`->color()` closures in the
+      codebase share the mistake.
+
+### Wrap-up
+- [x] `php artisan test` green (83 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] Manually verified in browser: created a website, configured a real
+      local git repo as its `repository_url` through the actual edit form,
+      confirmed the Deploy action appears and (via the same underlying
+      Action, since this session's browser automation can't reliably drive
+      Filament's confirmation modals - see CLAUDE.md) that triggering it runs
+      a real `git clone` against that repo
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
+
 ## Up Next
-- [ ] Module 5 — Deployment (see docs/Roadmap.md)
+- [ ] Module 6 — Laravel Deployment (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md
