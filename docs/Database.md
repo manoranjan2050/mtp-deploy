@@ -258,6 +258,21 @@ Runs `artisan` via `PHP_BINARY` (the currently-running PHP interpreter), not a
 per-website PHP version binary - see docs/Roadmap.md's Module 6 note on why that's
 an acceptable simplification for now.
 
+## Module 7 — File Manager ✅ (as built)
+
+No new tables. File/directory entries are read live from each website's
+`document_root` on disk via `App\Services\FileManager\FileManagerService` and
+represented in memory as `App\DTOs\FileManager\FileEntryData` - there is nothing
+to persist, since the filesystem itself is the source of truth. The only
+persistent trace of a File Manager action is an `activity('file_manager')` audit
+log entry (via the existing `spatie/laravel-activitylog` table from Module 1),
+written manually by each `App\Actions\FileManager\*` action since these are
+filesystem mutations, not Eloquent model changes `LogsActivity` could observe
+automatically.
+
+One new permission: `manage website files` (see docs/Security.md and
+`WebsitePolicy::manageFiles()`).
+
 ## Forward-Looking Schema (sketched, subject to change per-module)
 
 ### `ssl_certificates` (Module 10)

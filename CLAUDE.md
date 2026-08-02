@@ -158,6 +158,51 @@ just Action-level or Policy-level tests - see
 `tests/Feature/Websites/ListWebsitesPageTest.php` for the pattern now used to
 catch this going forward.
 
+## File Manager (Module 7): path validation, and three new lessons
+
+`App\Services\FileManager\FileManagerService` is the only class that touches a
+website's files, scoped to its `document_root`. It validates every relative path
+**twice**: syntactically before resolution (rejects `..` segments, absolute/
+drive-letter paths, null bytes), and again on the **resolved** `realpath()` after
+resolution (catches symlink escapes a syntax-only check would miss). `unzip()`
+additionally guards against zip-slip (re-validates every archive entry's target
+path) and decompression bombs (rejects an archive whose uncompressed size exceeds
+512 MB or whose uncompressed:compressed ratio exceeds 100:1, computed via
+`ZipArchive::statIndex()` before extracting anything). See docs/Security.md.
+
+Three bugs this module surfaced, worth remembering for future Livewire/Filament
+work:
+1. **A public Livewire property typed as a `Collection` of custom DTOs fails at
+   render time** with "Property type not supported in Livewire" - Livewire's synth
+   system only (de)hydrates specific types (arrays, Eloquent models/collections,
+   primitives, registered synths), not arbitrary object graphs. Any derived,
+   non-serializable value (like a live directory listing) should be a
+   `#[Computed]` method (`use Livewire\Attributes\Computed;`), not a public
+   property - it's recomputed fresh each render and never needs to survive
+   dehydration/hydration. Call `unset($this->propertyName)` after a mutating
+   action to clear its in-request memo if it was already read.
+2. **`UploadedFile::move()` can fail against a real Livewire file upload even
+   though it passes against `UploadedFile::fake()` in a plain unit test.**
+   Livewire's `TemporaryUploadedFile` has its own temp-disk lifecycle that
+   doesn't always tolerate a bare `move()` (rename-or-copy) call - it failed with
+   an empty-message `FileException` only when driven through a real
+   `Livewire::test()` upload. Fixed by reading the temp file's contents and
+   writing them out instead (`File::put($target, File::get($file->getRealPath()))`),
+   which works uniformly for both a genuine HTTP upload and a Livewire temporary
+   one.
+3. **A Blade component prop written as `heading="Upload &amp; create"` renders
+   the literal text `Upload &amp; create` in the browser**, not `Upload & create`
+   - Filament outputs the heading through `{{ }}`, which escapes the entity a
+   second time. Write a literal `&` in Blade source, not a pre-escaped entity.
+   This was only caught by an actual browser render (`get_page_text`), not by any
+   Livewire feature test - a reminder that string-exact browser verification
+   still catches things `assertSee()`-style feature tests can miss if the
+   assertion doesn't happen to include the affected text.
+
+Also: a typed class constant (`private const int NAME = ...`) is PHP 8.3+ syntax
+and fails to parse on this machine's PHP 8.2.31 - caught immediately by `php -l`,
+not by any test. Drop the type (`private const NAME = ...`) on this codebase.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

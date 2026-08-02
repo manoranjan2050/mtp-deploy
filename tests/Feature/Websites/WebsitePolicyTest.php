@@ -93,6 +93,28 @@ class WebsitePolicyTest extends TestCase
         $this->assertFalse($developer->can('manageServices', $website));
     }
 
+    public function test_developer_can_manage_files_on_their_own_website_but_not_anothers(): void
+    {
+        $developer = User::factory()->create();
+        $developer->assignRole('developer');
+
+        $ownWebsite = $this->makeWebsite(['created_by' => $developer->id]);
+        $othersWebsite = $this->makeWebsite(['domain' => 'other.example.com']);
+
+        $this->assertTrue($developer->can('manageFiles', $ownWebsite));
+        $this->assertFalse($developer->can('manageFiles', $othersWebsite));
+    }
+
+    public function test_viewer_cannot_manage_files(): void
+    {
+        $viewer = User::factory()->create();
+        $viewer->assignRole('viewer');
+
+        $website = $this->makeWebsite();
+
+        $this->assertFalse($viewer->can('manageFiles', $website));
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

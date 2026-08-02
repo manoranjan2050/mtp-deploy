@@ -483,6 +483,123 @@ docs/Architecture.md and CLAUDE.md for the full explanation:**
 - [x] `vendor/bin/pint` clean
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
 
+## Done — Module 7: File Manager
+
+No new database tables - file entries are read live from disk, scoped to each
+website's `document_root`. This is the first module that is entirely
+filesystem-facing rather than DB/process-facing, and the highest path-traversal
+risk surface in the app so far.
+
+### Backend
+- [x] `App\Services\FileManager\FileManagerService` - the only class that
+      touches a website's files. Every relative path argument is validated
+      *before* resolution (rejects `..` segments, absolute/drive-letter paths,
+      null bytes) and the **resolved** `realpath()` is re-checked against the
+      website's document root *after* resolution too - this second check is
+      the real guarantee, since it also catches symlink escapes that a
+      syntax-only check would miss
+- [x] `App\DTOs\FileManager\FileEntryData` (readonly) - `isImage()`/
+      `isEditableText()` helpers based on extension, used to decide which row
+      actions (Edit) a file gets
+- [x] `zip()`/`unzip()` - `unzip()` guards against both "zip slip" (an archive
+      entry name containing `../` that would write outside the destination
+      directory - every entry's target path is re-validated, exactly like
+      every other path in this class) and decompression bombs (rejects an
+      archive whose uncompressed size exceeds 512 MB, or whose
+      uncompressed:compressed ratio exceeds 100:1, computed from `statIndex()`
+      *before* extracting anything)
+- [x] Actions: `UploadFileAction`, `CreateDirectoryAction`, `RenameFileAction`,
+      `DeleteFileAction`, `WriteFileAction`, `ZipFilesAction`, `UnzipFileAction`
+      - each a thin delegation to the service plus an `activity('file_manager')`
+      audit-log entry (filesystem mutations don't flow through Eloquent's
+      `LogsActivity`, so these are logged manually, same pattern as
+      `BackupDatabaseAction` in Module 4)
+- [x] `WebsitePolicy::manageFiles()` - same developer-scoped-to-own-sites
+      pattern as `update`/`suspend`; new `manage website files` permission
+      wired into `admin` (all sites) and `developer` (own sites) roles, not
+      `viewer`
+
+### Filament / UI
+- [x] `App\Filament\Resources\Websites\Pages\ManageFiles` - a custom Filament
+      resource page (`Filament\Resources\Pages\Page` + `InteractsWithRecord`),
+      not a `Resource`/`Table`, since file entries are DTOs off disk, not an
+      Eloquent query Filament's table component could bind to
+- [x] Plain-Blade table + forms (not `<x-filament::breadcrumbs>` or a Filament
+      `Table`) since navigation between folders is pure Livewire component
+      state, not routed URLs - styled with Filament's own Blade components
+      (`x-filament::section`/`button`/`input`) to stay visually consistent
+- [x] Upload, create folder, rename (inline), delete (`wire:confirm` - a
+      native browser `confirm()`, deliberately *not* a Filament
+      `->requiresConfirmation()` modal, since those are unreliable to drive in
+      this session's browser automation - see CLAUDE.md), edit (plain
+      `<textarea>`, Monaco explicitly deferred), download, zip (per-item),
+      unzip (per `.zip` file)
+- [x] `WebsitesTable` gets a "Files" row action linking to the new page,
+      gated by `manageFiles`
+
+### Tests (`tests/Unit/Services/FileManager/`, `tests/Feature/Websites/ManageFilesPageTest.php`, 24 new)
+- [x] `FileManagerServiceTest` - real temp-directory filesystem (not mocked):
+      list/create/rename/delete/write/read/zip+unzip round-trip, **and** the
+      security boundary: `..` rejection, absolute-path rejection, null-byte
+      rejection, a resolved-path-escapes-root case using a real sibling
+      directory on disk (not just a string check), zip-slip (a real crafted
+      malicious zip with a `../escaped.txt` entry, asserting the file never
+      lands outside the document root), and the decompression-bomb ratio guard
+      (a real highly-compressible payload, asserting rejection)
+- [x] `ManageFilesPageTest` - the real Livewire page via `Livewire::test()`:
+      renders with a real row, an authorization-denial test (`viewer` role
+      gets a 403 from `mount()`), and every mutating action end-to-end
+      (create folder, upload, edit+save, rename, delete, navigate in/out of
+      subdirectories, and a path-traversal attempt from the component itself
+      recovering gracefully instead of throwing to the browser)
+- [x] `WebsitePolicyTest` - `manageFiles` scoping (developer own-site-only,
+      viewer denied)
+
+### Bugs found via this module and fixed
+- [x] A public Livewire property typed `Collection<FileEntryData>` failed at
+      render time with "Property type not supported in Livewire" - Livewire's
+      synth system only knows how to (de)hydrate specific types (arrays,
+      Eloquent models/collections, primitives, registered synths), and a
+      plain `Collection` of custom DTOs isn't one of them. Fixed by making
+      `entries()` a `#[Computed]` method instead of a public property -
+      derived from other component state (`currentDirectory` + the record),
+      recomputed fresh each render, never serialized as component state at
+      all. `unset($this->entries)` clears the in-request memo after a
+      mutating action.
+- [x] `UploadFileAction`/`FileManagerService::upload()` originally called
+      `$file->move($dir, $filename)` (Symfony's rename-or-copy). This passed
+      against a plain `UploadedFile::fake()` in a unit test but failed with an
+      empty-message `FileException` when driven through a real
+      `Livewire::test()` file upload - Livewire's `TemporaryUploadedFile` has
+      its own temp-disk lifecycle that doesn't always tolerate a bare
+      `move()`. Fixed by reading the temp file's contents and writing them
+      out (`File::put($target, File::get($file->getRealPath()))`) instead,
+      which works uniformly for both a real HTTP upload and a Livewire
+      temporary upload.
+- [x] A Blade component prop written as `heading="Upload &amp; create"`
+      rendered the literal text `Upload &amp; create` in the browser instead
+      of `Upload & create` - Filament's section heading is output through
+      `{{ }}`, which escapes it again, double-encoding the entity. Only
+      caught by an actual browser render (`get_page_text`), not by any
+      Livewire feature test, since none of them asserted on that exact
+      string. Fixed by writing a literal `&` in the Blade source.
+- [x] A typed class constant (`private const int MAX_UNCOMPRESSED_BYTES = ...`)
+      is a PHP 8.3+ syntax feature and doesn't parse on this machine's PHP
+      8.2.31 - caught immediately by `php -l`, fixed by dropping the type.
+
+### Wrap-up
+- [x] `php artisan test` green (111 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] Manually verified in browser: logged in, opened a real website's File
+      Manager page, navigated into a subdirectory, created a new folder
+      (confirmed on disk), opened and edited a real text file (confirmed the
+      new content was actually written to disk), confirmed the audit log
+      recorded both actions with the right properties, confirmed the
+      Websites list page's new "Files" row action links through correctly -
+      no console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md`
+      updated
+
 ## Up Next
-- [ ] Module 7 — File Manager (see docs/Roadmap.md)
+- [ ] Module 8 — Terminal (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

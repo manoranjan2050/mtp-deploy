@@ -71,11 +71,38 @@ model. Security-relevant constraints, restated:
   terminal is explicitly blocked and destructive command patterns
   (`rm -rf /`, `mkfs`, etc.) require a typed confirmation phrase before execution.
 
-## File Manager / Uploads
-- Uploaded files are validated by MIME + extension allowlist; executable extensions
-  (`.php`, `.phtml`, etc.) uploaded outside a site's own document root are rejected.
-- Zip extraction guards against path traversal (`../`) and zip-bomb style expansion
-  ratios before writing to disk.
+## File Manager / Uploads (Module 7, as built)
+- Every operation is scoped to one website's `document_root` via
+  `App\Services\FileManager\FileManagerService`, the only class that touches a
+  website's files. Two layers of validation, not one: every relative path is
+  syntactically rejected *before* resolution (`..` segments, absolute/drive-letter
+  paths, null bytes), and the **resolved** `realpath()` is re-checked against the
+  document root *after* resolution too - the second check is what actually catches
+  symlink escapes, which a syntax-only check on the raw string would miss entirely.
+- Unlike a generic multi-tenant upload feature, this module does **not** apply a
+  MIME/executable-extension blocklist to uploads - a `.php` file uploaded into a
+  website's own document root is exactly the intended, legitimate use case for a
+  PHP hosting panel (this is how Forge/Ploi/CloudPanel all behave too). The
+  path-traversal protection above is what prevents a file from ever landing
+  *outside* that website's own document root in the first place; there is no
+  separate directory in this app where an uploaded executable would pose a
+  privilege-escalation risk the containment check doesn't already cover.
+- Zip extraction (`unzip()`) guards against both:
+  - **Zip slip** - a malicious archive entry name containing `../` that would
+    otherwise write outside the intended extraction directory. Every entry's
+    target path is resolved and re-checked against the destination directory
+    before being written, exactly like every other path in this class.
+  - **Decompression bombs** - before extracting anything, every entry's
+    uncompressed size (via `ZipArchive::statIndex()`) is summed and the archive is
+    rejected if that total exceeds 512 MB, or if the uncompressed:compressed
+    ratio exceeds 100:1 (the signature of a crafted bomb - genuine mixed-content
+    files never compress anywhere near that well).
+- Every mutating File Manager action is gated behind `WebsitePolicy::manageFiles()`
+  (the `manage website files` permission - `admin`/`super-admin` on every site,
+  `developer` only on sites they created, not granted to `viewer`) and manually
+  audit-logged (`activity('file_manager')`) alongside the existing activity log,
+  since filesystem mutations aren't Eloquent model changes `LogsActivity` can
+  observe automatically.
 
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must

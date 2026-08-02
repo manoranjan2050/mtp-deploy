@@ -44,6 +44,11 @@ class WebsitePolicy
         return $user->can('manage website services');
     }
 
+    public function manageFiles(User $user, Website $website): bool
+    {
+        return $this->canManage($user, $website, 'manage website files');
+    }
+
     /**
      * Admins/super-admins manage every website; a `developer` only manages
      * websites they created - see the RoleSeeder comment on why "assigned

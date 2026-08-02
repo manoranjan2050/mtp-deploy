@@ -14,7 +14,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 4 | Database Manager (create/drop DB & users, privileges, backup/restore, phpMyAdmin) | ✅ | 1, 3 |
 | 5 | Deployment (Git providers, webhook, deploy button, rollback, history) | ✅ | 3 |
 | 6 | Laravel Deployment (composer/artisan pipeline steps) | ✅ | 5 |
-| 7 | File Manager (browse/upload/download/zip/edit) | ⬜ | 3 |
+| 7 | File Manager (browse/upload/download/zip/edit) | ✅ | 3 |
 | 8 | Terminal (browser SSH via xterm.js) | ⬜ | 1 |
 | 9 | Cloudflare (DNS, tunnels, SSL, cache purge) | ⬜ | 3 |
 | 10 | SSL (Let's Encrypt, renewal, custom certs, wildcard) | ⬜ | 3, 9 |
@@ -30,7 +30,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 7 — File Manager.** Modules 1–6 are complete - 85 passing tests, Pint
+**Module 8 — Terminal.** Modules 1–7 are complete - 111 passing tests, Pint
 clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
@@ -39,6 +39,17 @@ freshly-created, unrefreshed model instance, so every model with a DB-level
 `->default(...)` needs a matching in-memory `protected $attributes = [...]` default
 (hit on `User::is_active` in Module 2, `Website::status`/`ssl_status`/`framework` in
 Module 3 - watch for this on every new model going forward).
+
+Module 7 (File Manager) is the first module that is entirely filesystem-facing
+rather than DB/process-facing, and the highest path-traversal risk surface in the
+app so far - see CLAUDE.md's dedicated section on `FileManagerService`'s two-layer
+validation (syntactic rejection *before* resolution, a re-checked `realpath()`
+containment test *after*), and the zip-slip/decompression-bomb guards on `unzip()`.
+It also surfaced a Livewire-specific lesson worth remembering for any future
+Livewire component: a public property typed as a `Collection` of custom DTOs fails
+at render time ("Property type not supported in Livewire") because Livewire's synth
+system only (de)hydrates specific types. Use a `#[Computed]` method instead of a
+public property for any derived, non-serializable value.
 
 Checklist items deliberately deferred, not forgotten:
 - Module 3's "Website logs" - real log tailing is Module 14's job.

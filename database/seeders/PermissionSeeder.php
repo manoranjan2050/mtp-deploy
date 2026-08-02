@@ -28,6 +28,7 @@ class PermissionSeeder extends Seeder
         'update websites',
         'delete websites',
         'manage website services',
+        'manage website files',
         'view databases',
         'create databases',
         'delete databases',

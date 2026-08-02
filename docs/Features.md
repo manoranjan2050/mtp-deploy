@@ -115,12 +115,24 @@ module currently in progress.
       don't apply) and not yet implemented even as a Linux-conditional step
 
 ## Module 7 — File Manager
-- [ ] Upload / Download
-- [ ] Rename / Delete
-- [ ] Zip / Unzip
-- [ ] Drag & drop
-- [ ] Monaco code editor for text files
-- [ ] Image preview
+- [x] Upload / Download
+- [x] Rename / Delete
+- [x] Zip / Unzip (per-item zip, per-archive unzip; both guarded against
+      zip-slip and decompression bombs - see docs/Security.md)
+- [ ] Drag & drop - **not built**; upload is a standard `<input type="file">`
+      via Livewire's file upload feature, not a drag-and-drop zone. Revisit as
+      a pure front-end enhancement if needed - the upload path underneath is
+      already in place.
+- [ ] Monaco code editor for text files - **deferred**; a plain `<textarea>`
+      is used instead (consistent with keeping this module's scope to backend
+      correctness + security first). Swapping in Monaco later is additive,
+      not a rework.
+- [x] Image preview (`FileEntryData::isImage()` identifies previewable
+      extensions; browser renders the downloaded file natively)
+- [ ] Multi-select for zipping several files into one archive at once - **not
+      built**; zip is per-item (zip this one file/folder) rather than an
+      arbitrary multi-selection. A real multi-select UI is additive later if
+      needed.
 
 ## Module 8 — Terminal
 - [ ] Browser SSH session (xterm.js)

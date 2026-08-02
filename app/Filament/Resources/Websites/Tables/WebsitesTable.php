@@ -14,6 +14,7 @@ use App\Actions\Websites\ToggleSslAction;
 use App\Enums\DeploymentTrigger;
 use App\Enums\SslStatus;
 use App\Enums\WebsiteStatus;
+use App\Filament\Resources\Websites\WebsiteResource;
 use App\Models\Website;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -162,6 +163,11 @@ class WebsitesTable
                             ->danger(! $result->successful)
                             ->send();
                     }),
+                Action::make('files')
+                    ->label('Files')
+                    ->icon(Heroicon::OutlinedFolderOpen)
+                    ->authorize(fn (Website $record): bool => auth()->user()->can('manageFiles', $record))
+                    ->url(fn (Website $record): string => WebsiteResource::getUrl('files', ['record' => $record])),
                 EditAction::make(),
             ])
             ->headerActions([
