@@ -46,6 +46,20 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     ];
 
     /**
+     * In-memory default matching the `is_active` column's DB default - Eloquent
+     * doesn't hydrate DB-applied column defaults onto a freshly-created instance
+     * (only a re-fetch does), so without this a brand new User held in memory
+     * (e.g. straight out of a factory or `create()`) reads `is_active` as null
+     * instead of true until it's refreshed - a real `canAccessPanel(): bool`
+     * TypeError, not just a test artifact.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

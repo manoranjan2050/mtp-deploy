@@ -97,13 +97,72 @@ docs/Architecture.md and CLAUDE.md for the full explanation:**
 - [x] `vendor/bin/pint` clean
 - [x] Manually smoke-tested in browser: login, Users/Roles/Sessions/API
       Tokens/Activity Log pages all render and function (found and fixed one bug
-      this way - Sessions page needed an Eloquent model, not a raw query builder)
-- [ ] `docs/Database.md` Module 1 section - reviewed, matches implementation
+      this way - Sessions page needed an Eloquent model, not a raw query builder;
+      also caught and fixed a bad `formatStateUsing` on the API Tokens abilities
+      badge column that only surfaced once a real token existed)
+- [x] `docs/Database.md` Module 1 section - reviewed, matches implementation
       (column names updated to Filament's MFA convention)
 - [x] `docs/Features.md` Module 1 checklist ticked
 - [x] `docs/Roadmap.md` Module 1 status → ✅
 
+## Done — Module 2: Dashboard
+
+### Backend
+- [x] `system_metric_snapshots` migration + `App\Models\SystemMetricSnapshot`
+      (no `updated_at` - append-only, `recorded_at` is the timestamp of record)
+- [x] `App\Enums\ServiceStatus` (Running/Stopped/Unavailable - "Unavailable" is a
+      distinct, honest state, never conflated with "Stopped")
+- [x] `App\DTOs\System\SystemMetricsData` (readonly, `::unsupported()` factory)
+- [x] `App\Services\System\SystemMetricsService`: reads `/proc/stat`,
+      `/proc/meminfo`, `/proc/net/dev`, `sys_getloadavg()`, `disk_*_space()` on
+      Linux; returns `SystemMetricsData::unsupported()` on any other OS (this dev
+      machine is Windows) rather than fabricating zeros
+- [x] `App\Services\System\ServiceStatusService`: real connectivity probes for
+      MariaDB (`DB::connection()->getPdo()`) and Redis (`Redis::ping()`, both
+      cross-platform); `pgrep`-based process check for nginx/cloudflared
+      (Linux-only, reports `Unavailable` elsewhere)
+- [x] `app:capture-system-metrics` console command, scheduled `everyMinute()` in
+      `routes/console.php`
+
+### Filament / UI
+- [x] `SystemStatsOverview` (StatsOverviewWidget): CPU/RAM/disk/load-average tiles,
+      live capture per page load, honest "Unavailable" state off-Linux
+- [x] `ServiceStatusWidget`: PHP version + MariaDB/Redis/nginx/Cloudflare Tunnel
+      badges
+- [x] `MetricsTrendChart` (ChartWidget/Chart.js): CPU% + Memory% over the last 60
+      snapshots
+- [x] `LatestDeploymentsWidget`: honest empty-state placeholder (real data is
+      Module 5's job)
+- [x] Removed Filament's generic branding widget (`FilamentInfoWidget`) from the
+      panel, kept `AccountWidget` (welcome message)
+
+### Tests (`tests/Feature/Dashboard/`, `tests/Unit/Services/System/`, 11 new)
+- [x] Each widget renders successfully (Livewire component tests, not browser
+      screenshots - this session's browser pane isn't visually composited, so
+      Alpine's viewport-based lazy-load (`x-intersect`) never fires there; that's
+      an automation-environment limitation, not confirmed by a server error, and
+      the dashboard route itself does return 200 in a feature test)
+- [x] `MetricsTrendChart` produces correct CPU%/Memory% series from real snapshot
+      rows
+- [x] `SystemMetricsService`/`ServiceStatusService` unit tests, OS-conditional
+      (skip the Linux-only assertions on this Windows dev box, run the
+      non-Linux/"Unavailable" assertions instead)
+
+### Bug found via this module and fixed in Module 1's code
+- [x] `User::canAccessPanel()` read `$this->is_active` and could return `null`
+      (not `bool`) for a freshly-created, unrefreshed `User` instance - Eloquent
+      doesn't hydrate DB-applied column defaults onto an in-memory model after
+      `create()`. Fixed with an in-memory `protected $attributes = ['is_active'
+      => true]` default matching the migration's own default. Caught by a new
+      Dashboard test (`test_dashboard_page_loads_for_an_authenticated_user`)
+      using a plain `User::factory()->create()`, not one of Module 1's own tests
+      which happened to always set `is_active` explicitly.
+
+### Wrap-up
+- [x] `php artisan test` green (33 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
+
 ## Up Next
-- [ ] Module 2 — Dashboard (see docs/Roadmap.md)
-- [ ] Module 3 — Website Manager
+- [ ] Module 3 — Website Manager (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

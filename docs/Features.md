@@ -19,20 +19,20 @@ module currently in progress.
 - [x] API Tokens (create scoped token, list, revoke — scopes in `App\Enums\ApiTokenAbility`)
 - [x] Activity Logs (searchable/filterable audit trail, read-only resource)
 
-## Module 2 — Dashboard
-- [ ] CPU usage widget (live, polling)
-- [ ] RAM usage widget
-- [ ] Disk usage widget
-- [ ] Load average widget
-- [ ] Network I/O widget
-- [ ] PHP version(s) installed
-- [ ] MariaDB status (up/down, version, connections)
-- [ ] Redis status
-- [ ] Nginx status
-- [ ] Cloudflare Tunnel status
-- [ ] Latest deployments feed
-- [ ] Chart.js trend charts (CPU/RAM/disk over time)
-- [ ] Dark mode / light mode toggle
+## Module 2 — Dashboard ✅
+- [x] CPU usage widget (`SystemStatsOverview`, live via `SystemMetricsService::capture()` — reads `/proc/stat` with a 100ms double-sample; reports "Unavailable" honestly on non-Linux hosts rather than fake data)
+- [x] RAM usage widget (`/proc/meminfo`, same widget)
+- [x] Disk usage widget (`disk_total_space()`/`disk_free_space()`, cross-platform)
+- [x] Load average widget (`sys_getloadavg()`, cross-platform where supported)
+- [x] Network I/O (`/proc/net/dev`, summed across non-loopback interfaces — captured into snapshots, not yet its own widget tile)
+- [x] PHP version(s) installed (`ServiceStatusWidget`)
+- [x] MariaDB status (real `DB::connection()->getPdo()` probe — works on any OS)
+- [x] Redis status (real `Redis::ping()` probe, reports Stopped when unreachable/not installed)
+- [x] Nginx status (Linux process check via `pgrep`; Unavailable off-Linux)
+- [x] Cloudflare Tunnel status (same process-check approach as nginx)
+- [x] Latest deployments feed (`LatestDeploymentsWidget` — honest empty-state placeholder; real data ships with Module 5)
+- [x] Chart.js trend charts (`MetricsTrendChart`, CPU/RAM over the last 60 `system_metric_snapshots` rows, captured every minute by `app:capture-system-metrics`, scheduled in `routes/console.php`)
+- [x] Dark mode / light mode toggle (Filament built-in, present in the topbar since Module 1)
 
 ## Module 3 — Website Manager
 - [ ] Create website (domain, doc root, PHP version)

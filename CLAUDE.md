@@ -38,6 +38,23 @@ single source of truth for current state.
   locally, and definitely before any production deployment (Supervisor/queue
   behavior at scale assumes Redis).
 - Node 24.18.0 / npm 11.16.0 available for the Vite/Tailwind asset build.
+- **This machine is Windows, not Linux.** `App\Services\System\SystemMetricsService`
+  and `ServiceStatusService` (Module 2) read `/proc/*` and run `pgrep` - both are
+  Linux-only and correctly report an honest "unsupported"/`Unavailable` state here
+  rather than fake data. Don't "fix" that by mocking fake numbers for this OS; it's
+  intentional (see docs/Vision.md's "never lie about server state" principle). The
+  `system_metric_snapshots` table will simply hold `is_supported = false` rows until
+  this runs on Linux, or until the code is unit-tested on a Linux CI runner.
+- The dashboard's live-metrics widgets are Livewire components lazy-loaded via
+  Alpine's `x-intersect` (viewport visibility), not on `wire:init`. If you're
+  driving a headless/non-visually-composited browser session, they'll show
+  "Loading..." forever because the IntersectionObserver never fires - that's an
+  automation limitation, not a bug. Verify with `Livewire::test(WidgetClass::class)`
+  feature tests instead (see `tests/Feature/Dashboard/DashboardWidgetsTest.php`),
+  or a real, on-screen browser.
+- The scheduler (`routes/console.php`) isn't running by default under `php artisan
+  serve` - run `php artisan schedule:work` alongside it (or `schedule:run` in a
+  loop) to actually populate `system_metric_snapshots` every minute locally.
 
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every

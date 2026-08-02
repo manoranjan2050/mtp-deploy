@@ -51,13 +51,27 @@ Abilities are drawn from `App\Enums\ApiTokenAbility` (`profile:read`,
 `App\Filament\Resources\ActivityLogs\ActivityLogResource` (no create/edit/delete
 pages registered - see docs/Security.md on audit logs being append-only).
 
-### `personal_access_tokens`
-Laravel Sanctum's built-in table, surfaced in the profile as "API Tokens" with
-scoped abilities and an expiry.
+## Module 2 — Dashboard ✅ (as built)
 
-### `activity_log`
-`spatie/laravel-activitylog`'s built-in table. Every Action class logs
-`causer`/`subject`/`description`/`properties` (before/after diff where relevant).
+### `system_metric_snapshots`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| is_supported | boolean default true | false when captured on a non-Linux host - `cpu_usage_percent` etc. are null in that case, never fabricated |
+| cpu_usage_percent | float nullable | derived from two `/proc/stat` reads 100ms apart |
+| memory_used_bytes | bigint unsigned nullable | `/proc/meminfo`: `MemTotal - MemAvailable` |
+| memory_total_bytes | bigint unsigned nullable | |
+| disk_used_bytes | bigint unsigned nullable | root filesystem, via `disk_total_space()`/`disk_free_space()` |
+| disk_total_bytes | bigint unsigned nullable | |
+| load_1min / load_5min / load_15min | float nullable | `sys_getloadavg()` |
+| network_rx_bytes / network_tx_bytes | bigint unsigned nullable | summed across non-loopback interfaces, `/proc/net/dev` |
+| recorded_at | timestamp | when the snapshot was taken (no `updated_at` - append-only) |
+
+Populated every minute by `php artisan app:capture-system-metrics`
+(`App\Console\Commands\CaptureSystemMetrics`), scheduled in `routes/console.php`.
+`App\Filament\Widgets\MetricsTrendChart` reads the last 60 rows for its Chart.js
+line chart; no other module reads this table (no model relationships needed beyond
+the plain `App\Models\SystemMetricSnapshot`).
 
 ## Forward-Looking Schema (sketched, subject to change per-module)
 

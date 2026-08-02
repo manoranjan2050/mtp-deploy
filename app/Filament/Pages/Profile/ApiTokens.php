@@ -44,8 +44,7 @@ class ApiTokens extends Page implements HasTable
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('abilities')
-                    ->badge()
-                    ->formatStateUsing(fn (array $state): array => $state),
+                    ->badge(),
                 TextColumn::make('last_used_at')
                     ->dateTime()
                     ->placeholder('Never'),
