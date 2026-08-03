@@ -26,7 +26,16 @@
             <form wire:submit="upload" class="flex items-end gap-2">
                 <div>
                     <label class="fi-fo-field-wrp-label mb-1 block text-sm font-medium">Upload file</label>
-                    <input type="file" wire:model="newUpload" />
+                    {{-- Explicit file: classes are required here - Tailwind's
+                         preflight reset strips the native file input's
+                         "Choose File" button styling entirely, which without
+                         this leaves only the "No file chosen" text visible
+                         with no clickable button to open the file picker. --}}
+                    <input
+                        type="file"
+                        wire:model="newUpload"
+                        class="block text-sm text-gray-950 dark:text-white file:mr-3 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-primary-500"
+                    />
                     @error('newUpload') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror
                 </div>
                 <x-filament::button type="submit" size="sm" wire:loading.attr="disabled" wire:target="newUpload,upload">
