@@ -367,6 +367,25 @@ fi
 rm -f "${SUDOERS_FILE}.tmp"
 
 # ---------------------------------------------------------------------------
+log "Carving out a systemd sandbox exception so php-fpm can write nginx vhosts"
+# ---------------------------------------------------------------------------
+# Ubuntu's php-fpm systemd unit ships with ProtectSystem=full, which makes
+# /usr, /boot, and /etc read-only *from php-fpm's own process*, in its own
+# mount namespace - completely independent of, and not overridden by, plain
+# Unix chmod/chgrp permissions. Without this override, WebsiteProvisioningService's
+# direct file_put_contents() call to write a vhost fails with "Read-only file
+# system" even though the directory's ordinary permission bits are correct.
+# ReadWritePaths carves out exactly the two directories this app needs to
+# write to, leaving every other ProtectSystem=full protection intact.
+mkdir -p "/etc/systemd/system/php${MTP_PHP_VERSION}-fpm.service.d"
+cat > "/etc/systemd/system/php${MTP_PHP_VERSION}-fpm.service.d/mtp-deploy.conf" <<SYSTEMD
+[Service]
+ReadWritePaths=/etc/nginx/sites-available /etc/nginx/sites-enabled
+SYSTEMD
+systemctl daemon-reload
+systemctl restart "php${MTP_PHP_VERSION}-fpm"
+
+# ---------------------------------------------------------------------------
 log "Configuring the Supervisor queue worker"
 # ---------------------------------------------------------------------------
 cat > /etc/supervisor/conf.d/mtp-deploy-worker.conf <<SUPERVISOR

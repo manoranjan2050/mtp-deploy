@@ -127,20 +127,36 @@ starts on boot — nothing here needs a manual restart after a reboot.
   password is force-synced to `.env` on every run. `git pull` to get the fix,
   then just re-run `sudo ./install.sh` — no manual SQL needed, it self-heals.
 - **Adding a website in the panel saves the database row but nothing shows up
-  on disk** (no nginx vhost, no document root, and clicking Republish keeps
-  giving the same silent-feeling failure) — Module 3 writes each website's
-  nginx vhost under `/etc/nginx/sites-{available,enabled}` and creates its
-  document root under `/var/www` directly, and reloads nginx/restarts PHP-FPM
-  via `sudo -n` per `docs/Architecture.md`'s privileged-command model. Older
-  `install.sh` never actually set either of those up: the two directories
-  were root-owned with no write access for `www-data`, and there was no
-  `/etc/sudoers.d/mtp-deploy` entry, so every one of those operations failed
-  silently. `git pull` to get the fix, then re-run `sudo ./install.sh` — it
+  on disk** (no nginx vhost, no document root) — Module 3 writes each
+  website's nginx vhost under `/etc/nginx/sites-{available,enabled}` and
+  creates its document root under `/var/www` directly, and reloads
+  nginx/restarts PHP-FPM via `sudo -n` per `docs/Architecture.md`'s
+  privileged-command model. Older `install.sh` never actually set any of
+  that up. `git pull` to get the fix, then re-run `sudo ./install.sh` — it
   grants `www-data` group-write on `/etc/nginx/sites-available`,
-  `/etc/nginx/sites-enabled`, and `/var/www`, and installs a narrow
-  `NOPASSWD` sudoers entry scoped to exactly `nginx -t`, `systemctl reload
-  nginx`, and `systemctl restart php<version>-fpm` — never a blanket `sudo
-  ALL`. Re-run the website's Republish action afterward to provision it.
+  `/etc/nginx/sites-enabled`, and `/var/www`, installs a narrow `NOPASSWD`
+  sudoers entry scoped to exactly `nginx -t`, `systemctl reload nginx`, and
+  `systemctl restart php<version>-fpm` (never a blanket `sudo ALL`), **and**
+  adds a systemd override so php-fpm can actually use that write access (see
+  next entry). There's no separate "Republish" button — just open the
+  website in the panel and click **Save**; that alone re-runs provisioning
+  via an `afterSave()` hook.
+- **Same as above, but the log shows `file_put_contents(...): Failed to open
+  stream: Read-only file system`** even after confirming
+  `/etc/nginx/sites-available` has correct, writable permissions — this is
+  not a permissions bug, it's systemd's own sandboxing. Ubuntu's
+  `php-fpm` unit ships with `ProtectSystem=full`, which makes `/usr`,
+  `/boot`, and `/etc` read-only *from php-fpm's own process*, in its own
+  mount namespace, completely independent of and not overridden by
+  `chmod`/`chgrp`. Fixed by a systemd drop-in
+  (`/etc/systemd/system/php<version>-fpm.service.d/mtp-deploy.conf`) adding
+  `ReadWritePaths=/etc/nginx/sites-available /etc/nginx/sites-enabled` —
+  carves out exactly the two paths this app needs while leaving every other
+  `ProtectSystem=full` protection in place. `install.sh` now writes this
+  automatically and restarts php-fpm; on an existing server, `git pull` and
+  re-run `sudo ./install.sh`, or apply the drop-in and
+  `sudo systemctl daemon-reload && sudo systemctl restart php<version>-fpm`
+  by hand.
 - **`/admin` returns a bare 404 with body `File not found.`** (not Laravel's
   own 404 page) — this is PHP-FPM itself failing to open `public/index.php`,
   not a routing problem. It happens when the app was cloned into a regular
