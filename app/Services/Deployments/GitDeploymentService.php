@@ -10,6 +10,7 @@ use App\Enums\WebsiteFramework;
 use App\Models\Deployment;
 use App\Models\User;
 use App\Models\Website;
+use App\Services\Notifications\NotificationDispatchService;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
@@ -31,6 +32,7 @@ class GitDeploymentService
 {
     public function __construct(
         private readonly LaravelDeploymentPipelineService $pipeline,
+        private readonly NotificationDispatchService $notifications,
     ) {}
 
     public function deploy(
@@ -80,7 +82,17 @@ class GitDeploymentService
             ]);
         }
 
-        return $deployment->fresh();
+        $deployment = $deployment->fresh();
+
+        if ($triggeredBy !== null) {
+            $this->notifications->notifyUser(
+                $triggeredBy,
+                "Deployment {$deployment->status->getLabel()}: {$website->domain}",
+                "Branch {$deployment->branch}, commit {$deployment->commit_sha}.",
+            );
+        }
+
+        return $deployment;
     }
 
     private function ensureRepositoryCloned(Website $website, Deployment $deployment): void

@@ -276,17 +276,36 @@ module currently in progress.
       configured per-hardware, which is out of scope for a generic
       first pass. Revisit if a concrete target server's sensor layout is
       known.
-- [ ] Outbound alert notifications (email/Telegram/etc.) - **not built
-      here on purpose**; alerts are recorded and visible in-app only for
-      now. Dispatching them through a real notification channel is
-      explicitly Module 16's job, not duplicated here.
+- [x] Outbound alert notifications - wired up in Module 16:
+      `AlertEvaluatorService` notifies every admin/super-admin user with an
+      enabled channel the moment a new alert triggers (not on every
+      already-open breach, and not on resolution).
 
 ## Module 16 — Notifications
-- [ ] Telegram channel
-- [ ] Email channel
-- [ ] Discord channel
-- [ ] Slack channel
-- [ ] Per-event channel routing preferences
+- [x] Email channel - real `Mail::to()->send()`, verified via `Mail::fake()`
+- [x] Telegram channel - real Bot API `sendMessage` call
+- [x] Discord channel - real incoming-webhook POST
+- [x] Slack channel - real incoming-webhook POST
+- [x] Self-service management - each user adds/enables/disables/deletes
+      their own channels and can "Send test" any one of them, on a new
+      `Notification Channels` profile page (same self-scoped pattern as
+      API Tokens/Sessions, no new permission needed)
+- [x] Wired into two real events: a newly triggered Module 15 alert
+      (notifies every admin/super-admin with an enabled channel) and a
+      finished deployment (notifies the user who triggered it, success or
+      failure)
+- [ ] Per-event channel routing preferences (e.g. "only Telegram for
+      alerts, only email for deployments") - **not built**; every enabled
+      channel currently receives every notification sent to that user.
+      Revisit if the single-audience-per-channel model proves too coarse
+      in practice.
+- **This dev environment has no real Telegram bot token/Discord or Slack
+  webhook to test end-to-end against** - like Module 9's Cloudflare and
+  Module 10's Let's Encrypt, `Http::fake()` verifies each provider's real,
+  documented request shape instead of a live account round-trip, a
+  disclosed, honest deviation (see CLAUDE.md). Email is fully real,
+  verified via `Mail::fake()` and confirmed in the browser via the `log`
+  mail driver.
 
 ## Module 17 — API
 - [ ] Full REST API (see [API.md](API.md))

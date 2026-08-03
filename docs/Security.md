@@ -244,6 +244,29 @@ model. Security-relevant constraints, restated:
   (`Validate` attributes on the Livewire page) before being persisted -
   never trusted as-is from the request.
 
+## Notifications (Module 16, as built)
+- Every user manages only their own `notification_channels` rows
+  (`$user->notificationChannels()`), scoped in the exact same
+  self-service, no-new-permission pattern as API Tokens/Sessions - there is
+  no way for one user to view, edit, or trigger another user's channel.
+- Each channel's `config` (bot tokens, webhook URLs) is stored **encrypted**
+  (`'config' => 'encrypted:array'`), same principle as Module 9's Cloudflare
+  API tokens and Module 3's SSH private keys - never plaintext at rest.
+- `NotificationDispatchService` never throws on a broken channel - a bad
+  Telegram token or an unreachable webhook is caught, logged, and reported
+  back as `false`, so one user's misconfigured channel can never block
+  notifications to every other enabled channel or every other user (e.g. an
+  alert notifying five admins where one has a stale Telegram token).
+- Real system events (a newly triggered Module 15 alert, a finished
+  deployment) only ever pass a plain subject/body string built server-side -
+  never user-controlled request input forwarded directly into an outbound
+  HTTP call.
+- **This dev environment has no real Telegram bot token/Discord or Slack
+  webhook** - `Http::fake()` verifies each provider's real, documented
+  request shape instead of a live account round-trip, the same disclosed
+  deviation as Module 9/10 (see CLAUDE.md). Email is fully real and was
+  manually verified end-to-end via the `log` mail driver.
+
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must
   run behind HTTPS (the panel's own SSL, independent of the SSL the panel provisions

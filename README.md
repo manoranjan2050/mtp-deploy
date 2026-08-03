@@ -35,8 +35,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 13 | Backups — files + database + git snapshots, scheduled, restore | ✅ |
 | 14 | Logs — Laravel/nginx log tail & search, per-website and application-wide | ✅ |
 | 15 | Monitoring & alerts — historical charts, bandwidth, process list, threshold alerts | ✅ |
-| 16 | Notifications (Telegram/Email/Discord/Slack) | ⬜ next |
-| 17 | API (REST + tokens + webhooks) | ⬜ |
+| 16 | Notifications — Email/Telegram/Discord/Slack, self-service channels, wired to alerts + deployments | ✅ |
+| 17 | API (REST + tokens + webhooks) | ⬜ next |
 | 18 | Multi Server | ⬜ |
 | 19 | Docker | ⬜ |
 | 20 | AI Assistant | ⬜ |

@@ -7,12 +7,16 @@ namespace Tests\Feature\Deployments;
 use App\Actions\Deployments\RollbackDeploymentAction;
 use App\Enums\DeploymentStatus;
 use App\Enums\DeploymentTrigger;
+use App\Enums\NotificationChannelType;
 use App\Enums\WebsiteFramework;
+use App\Mail\PlainNotificationMail;
 use App\Models\Server;
+use App\Models\User;
 use App\Models\Website;
 use App\Services\Deployments\GitDeploymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -114,6 +118,23 @@ class GitDeploymentServiceTest extends TestCase
 
         $this->assertSame(DeploymentStatus::Failed, $deployment->status);
         $this->assertNotEmpty($deployment->log);
+    }
+
+    public function test_the_triggering_user_is_notified_on_completion(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->create(['email' => 'deployer@example.test']);
+        $user->notificationChannels()->create(['channel' => NotificationChannelType::Email, 'config' => []]);
+
+        $website = $this->makeWebsite();
+
+        app(GitDeploymentService::class)->deploy($website, DeploymentTrigger::Manual, $user);
+
+        Mail::assertSent(function (PlainNotificationMail $mailable) {
+            return $mailable->hasTo('deployer@example.test')
+                && str_contains($mailable->envelope()->subject, 'Success');
+        });
     }
 
     private function commitFile(string $filename, string $contents, string $message): void

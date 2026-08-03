@@ -6,16 +6,32 @@ namespace Tests\Unit\Services\Monitoring;
 
 use App\DTOs\System\SystemMetricsData;
 use App\Enums\AlertMetric;
+use App\Enums\NotificationChannelType;
+use App\Mail\PlainNotificationMail;
 use App\Models\Alert;
 use App\Models\Server;
+use App\Models\User;
 use App\Services\Monitoring\AlertEvaluatorService;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AlertEvaluatorServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // AlertEvaluatorService notifies admin/super-admin users on every
+        // newly triggered alert (User::role(...) throws RoleDoesNotExist if
+        // those roles don't exist at all, not just return empty).
+        $this->seed([PermissionSeeder::class, RoleSeeder::class]);
+    }
 
     public function test_it_triggers_an_alert_when_a_metric_exceeds_its_threshold(): void
     {
@@ -92,6 +108,26 @@ class AlertEvaluatorServiceTest extends TestCase
         $this->assertDatabaseHas('alerts', ['metric' => AlertMetric::Memory->value]);
         $this->assertDatabaseMissing('alerts', ['metric' => AlertMetric::Cpu->value]);
         $this->assertDatabaseMissing('alerts', ['metric' => AlertMetric::Disk->value]);
+    }
+
+    public function test_a_newly_triggered_alert_notifies_admins_with_an_enabled_channel(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->create(['email' => 'admin@example.test']);
+        $admin->assignRole('admin');
+        $admin->notificationChannels()->create(['channel' => NotificationChannelType::Email, 'config' => []]);
+
+        $viewer = User::factory()->create();
+        $viewer->assignRole('viewer');
+        $viewer->notificationChannels()->create(['channel' => NotificationChannelType::Email, 'config' => []]);
+
+        $server = $this->server(['cpu_alert_threshold' => 80]);
+
+        app(AlertEvaluatorService::class)->evaluate($server, $this->metrics(cpuUsagePercent: 92.0));
+
+        Mail::assertSent(fn (PlainNotificationMail $mailable) => $mailable->hasTo('admin@example.test'));
+        Mail::assertSentCount(1);
     }
 
     private function server(array $attributes): Server

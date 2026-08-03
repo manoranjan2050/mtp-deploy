@@ -504,9 +504,21 @@ permission model.
 No new table for the process list - `ProcessListService` reads real `ps`
 output live, on demand; there is nothing to persist.
 
-### `notification_channels` (Module 16)
-id, user_id, channel (enum: email/telegram/discord/slack), config (encrypted json),
-is_enabled, timestamps.
+## Module 16 — Notifications ✅ (as built)
+
+### `notification_channels`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| user_id | fk users, cascadeOnDelete | each user manages only their own channels, self-service |
+| channel | string, cast to `App\Enums\NotificationChannelType` | email/telegram/discord/slack |
+| label | string nullable | user-chosen friendly name, e.g. "Personal phone" |
+| config | text, cast `encrypted:array` | shape depends on `channel` - `{email}` (optional override, defaults to the user's own account email), `{bot_token, chat_id}` (Telegram), or `{webhook_url}` (Discord/Slack) |
+| is_enabled | bool default true | disabled channels are skipped by `NotificationDispatchService` |
+| timestamps | | |
+
+No new permission - identical to API Tokens/Sessions, every user manages
+only their own rows (`$user->notificationChannels()`), never another user's.
 
 ### `docker_containers` / `docker_images` (Module 19)
 Sketched only — schema finalized in Module 19.

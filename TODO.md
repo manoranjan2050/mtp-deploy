@@ -955,6 +955,32 @@ Also built at the user's explicit request, outside the numbered module list:
       **not built** - disclosed gaps, see docs/Features.md (notifications are
       explicitly Module 16's job)
 
+## Done — Module 16: Notifications
+
+- [x] `notification_channels` schema - `App\Enums\NotificationChannelType`
+      (email/telegram/discord/slack), encrypted `config` json, per-user
+      self-service (no new permission, same pattern as API Tokens/Sessions)
+- [x] `NotificationDispatchService` - real Email (`Mail::to()->send()` via
+      new `App\Mail\PlainNotificationMail`), real Telegram Bot API
+      `sendMessage`, real Discord/Slack incoming-webhook POSTs; a failure on
+      one channel is caught/logged, never thrown, never blocks another
+      channel or user
+- [x] `NotificationChannels` profile page (table like API Tokens) - add/
+      toggle-enabled/delete/"Send test" for each of a user's own channels
+- [x] Wired into two real events: `AlertEvaluatorService` notifies every
+      admin/super-admin with an enabled channel on a newly triggered Module
+      15 alert; `GitDeploymentService` notifies the triggering user when a
+      deployment finishes (success or failure)
+- [x] `php artisan test` green (266 passed, 2 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: added a real Email channel, clicked
+      "Send test," confirmed the real email (subject + body) appeared in
+      `storage/logs/laravel.log` via the `log` mail driver, then deleted the
+      channel; no console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`,
+      `docs/Security.md` updated
+- [ ] Per-event channel routing preferences - **not built**; disclosed gap,
+      see docs/Features.md
+
 ## Up Next
-- [ ] Module 16 — Notifications (see docs/Roadmap.md)
+- [ ] Module 17 — API (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

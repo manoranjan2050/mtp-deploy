@@ -8,6 +8,8 @@ use App\DTOs\System\SystemMetricsData;
 use App\Enums\AlertMetric;
 use App\Models\Alert;
 use App\Models\Server;
+use App\Models\User;
+use App\Services\Notifications\NotificationDispatchService;
 
 /**
  * Pure decision logic over a metrics snapshot and a server's configured
@@ -19,6 +21,10 @@ use App\Models\Server;
  */
 class AlertEvaluatorService
 {
+    public function __construct(
+        private readonly NotificationDispatchService $notifications,
+    ) {}
+
     public function evaluate(Server $server, SystemMetricsData $metrics): void
     {
         if (! $metrics->isSupported) {
@@ -50,6 +56,12 @@ class AlertEvaluatorService
                     'triggered_value_percent' => $value,
                     'triggered_at' => $metrics->collectedAt,
                 ]);
+
+                $this->notifications->notifyUsers(
+                    User::role(['admin', 'super-admin'])->get(),
+                    "MTP Deploy alert: {$metric->getLabel()} on {$server->name}",
+                    "{$metric->getLabel()} reached {$value}%, above the configured threshold of {$threshold}%.",
+                );
             }
 
             return;

@@ -438,6 +438,48 @@ the bandwidth table and process list are computed directly in the page's own
 Livewire class instead. Worth remembering before adding any new widget meant
 for a page other than the Dashboard.
 
+## Notifications (Module 16): Mail::fake() doesn't record Mail::raw() at all
+
+`Illuminate\Support\Testing\Fakes\MailFake::raw()` is a literal no-op - it
+does not build or record anything, because `Mail::raw()` never constructs an
+`Illuminate\Mail\Mailable` instance in the first place (it goes through a
+completely different code path than `Mail::to()->send($mailable)`). A test
+asserting `Mail::assertSent(...)` after a `Mail::raw()` call will silently
+always fail with zero recorded mail, no matter what the closure checks -
+there is no exception, just an assertion failure that looks like the wrong
+recipient rather than "nothing was ever recorded." Switched
+`NotificationDispatchService`'s email channel to build a real
+`App\Mail\PlainNotificationMail extends Mailable` and send it via
+`Mail::to($recipient)->send($mailable)` instead - genuinely testable via
+`Mail::fake()`/`Mail::assertSent()`.
+
+Relatedly: `Mail::assertSent(fn ($mailable) => ...)` throws `RuntimeException:
+The first parameter of the given Closure is missing a type hint` unless the
+closure's parameter is typed - Laravel uses reflection on the closure to
+infer which mailable class to filter for, so `fn ($mailable) => ...` always
+fails this way; it must be `fn (PlainNotificationMail $mailable) => ...`.
+
+Conditionally-visible schema fields (`->visible(fn (Get $get) => ...)` keyed
+off a `->live()` Select) proved fragile to drive through Filament's table
+action testing helpers (`callTableAction`/`setTableActionData`) - state set
+directly via the test harness doesn't necessarily replay the same
+visibility-then-dehydrate sequence a real interactive browser session does,
+so a hidden-at-fill-time field's value can silently vanish from the
+dehydrated `$data` array even though it was passed in. Rather than fighting
+the test harness, simplified the actual form: all channel-specific config
+fields (bot token, chat ID, webhook URL) are always visible with a label
+prefix naming which channel type they belong to, instead of conditionally
+shown/hidden. Simpler, more robust to test, and a perfectly reasonable UX
+choice for an internal admin tool - not every form needs live conditional
+visibility.
+
+`User::role([...])` (Spatie's role-scoping query) throws `RoleDoesNotExist`
+if a named role doesn't exist in the database **at all**, not just returning
+an empty result - any code path that calls it (here,
+`AlertEvaluatorService` notifying admins on a new alert) requires
+`PermissionSeeder`/`RoleSeeder` to have run first, even in a test that
+creates zero users. Forgetting this seed step doesn't fail quietly.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).
