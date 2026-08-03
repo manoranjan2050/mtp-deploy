@@ -81,6 +81,11 @@ apt-get install -y \
 
 update-alternatives --set php "/usr/bin/php${MTP_PHP_VERSION}" 2>/dev/null || true
 
+# The php-fpm package's own postinst usually enables it already, but that's
+# an implementation detail of the package, not something this script should
+# rely on silently - make it explicit so the panel actually survives a reboot.
+systemctl enable --now "php${MTP_PHP_VERSION}-fpm"
+
 # ---------------------------------------------------------------------------
 log "Installing Composer"
 # ---------------------------------------------------------------------------
@@ -290,6 +295,12 @@ supervisorctl start mtp-deploy-worker:* || true
 # ---------------------------------------------------------------------------
 log "Installing the scheduler cron entry"
 # ---------------------------------------------------------------------------
+# Most stock Ubuntu Server images ship with `cron` pre-installed and enabled,
+# but a minimal/custom image might not - install and enable it explicitly
+# rather than assuming, since the scheduler entry below is useless without it.
+apt-get install -y cron
+systemctl enable --now cron
+
 CRON_LINE="* * * * * ${MTP_SYSTEM_USER} cd ${MTP_APP_DIR} && php artisan schedule:run >> /dev/null 2>&1"
 CRON_FILE="/etc/cron.d/mtp-deploy"
 echo "${CRON_LINE}" > "${CRON_FILE}"

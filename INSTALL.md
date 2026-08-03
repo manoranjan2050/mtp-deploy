@@ -57,8 +57,17 @@ Other variables you can override (see the top of `install.sh` for the full list)
 - nginx (writes a vhost for the panel itself, reloads nginx)
 - Supervisor (a `queue:work` program so background jobs actually run)
 - phpMyAdmin (optional, reachable at `/phpmyadmin` under the panel's own vhost)
-- A cron entry running Laravel's scheduler every minute (this is what actually
-  captures dashboard metrics, checks SSL renewals, etc. — see docs/Roadmap.md)
+- `cron` (installed and enabled explicitly, not assumed) plus a scheduler entry
+  that runs every minute (this is what actually captures dashboard metrics,
+  checks SSL renewals, etc. — see docs/Roadmap.md)
+
+### Does everything survive a reboot?
+
+Yes — every service the script needs is enabled via `systemctl enable --now`
+(MariaDB, Redis, nginx, PHP-FPM, Supervisor, cron), not just started once for
+this session. The queue worker itself is a Supervisor *program*
+(`autostart=true`), so it comes back automatically the moment Supervisor
+starts on boot — nothing here needs a manual restart after a reboot.
 
 ### After it finishes
 
