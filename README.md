@@ -55,7 +55,22 @@ All architecture and planning docs live in [`docs/`](docs):
 Also see [CLAUDE.md](CLAUDE.md) if you're an AI assistant picking up work on this
 repo, and [TODO.md](TODO.md) for the granular in-progress checklist.
 
-## Local Setup
+## Production Install
+
+On a fresh Ubuntu/Debian server:
+
+```bash
+git clone https://github.com/manoranjan2050/mtp-deploy.git
+cd mtp-deploy
+sudo ./install.sh
+```
+
+This installs PHP, MariaDB, Redis, nginx, Supervisor, phpMyAdmin, builds the app,
+and wires up the scheduler/queue worker. See **[INSTALL.md](INSTALL.md)** for the
+full step-by-step guide, configuration variables, and post-install checklist
+(first-account registration, enabling 2FA, issuing a real SSL certificate).
+
+## Local Dev Setup
 
 ```bash
 composer install
