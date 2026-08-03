@@ -40,9 +40,23 @@ class DatabaseManagerService
     {
         $this->assertValidIdentifier($name);
 
+        if ($this->databaseExists($name)) {
+            throw new InvalidArgumentException("A database named \"{$name}\" already exists on the server.");
+        }
+
         DB::connection('mysql_admin')->statement(
             sprintf('CREATE DATABASE `%s` CHARACTER SET %s COLLATE %s', $name, $charset, $collation)
         );
+    }
+
+    public function databaseExists(string $name): bool
+    {
+        $this->assertValidIdentifier($name);
+
+        return DB::connection('mysql_admin')
+            ->table('information_schema.schemata')
+            ->where('schema_name', $name)
+            ->exists();
     }
 
     public function dropDatabase(string $name): void

@@ -88,6 +88,20 @@ class DatabaseManagerServiceTest extends TestCase
         $this->assertStringNotContainsString($this->dbName, $grantsAfterRevoke);
     }
 
+    public function test_it_rejects_creating_a_database_that_already_exists(): void
+    {
+        // Confirmed live: creating a database that already exists (e.g. one
+        // provisioned outside the panel, or a double-click) previously threw
+        // a raw QueryException all the way up to a blank Filament 500 error
+        // page instead of a friendly validation message.
+        $this->manager->createDatabase($this->dbName, 'utf8mb4', 'utf8mb4_unicode_ci');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("A database named \"{$this->dbName}\" already exists");
+
+        $this->manager->createDatabase($this->dbName, 'utf8mb4', 'utf8mb4_unicode_ci');
+    }
+
     public function test_it_rejects_an_invalid_database_name(): void
     {
         $this->expectException(InvalidArgumentException::class);
