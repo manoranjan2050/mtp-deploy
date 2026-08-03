@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Websites;
 
+use App\Enums\SslStatus;
 use App\Enums\WebsiteFramework;
 use App\Enums\WebsiteStatus;
 use App\Models\Server;
@@ -25,7 +26,7 @@ class NginxConfigGeneratorServiceTest extends TestCase
             'framework' => WebsiteFramework::Laravel,
         ]);
 
-        $config = (new NginxConfigGeneratorService)->generate($website);
+        $config = app(NginxConfigGeneratorService::class)->generate($website);
 
         $this->assertStringContainsString('server_name example.com www.example.com;', $config);
         $this->assertStringContainsString('root '.$website->publicPath().';', $config);
@@ -40,7 +41,7 @@ class NginxConfigGeneratorServiceTest extends TestCase
             'framework' => WebsiteFramework::Laravel,
         ]);
 
-        $config = (new NginxConfigGeneratorService)->generate($website);
+        $config = app(NginxConfigGeneratorService::class)->generate($website);
 
         $this->assertStringContainsString('root /var/www/example.com/public;', $config);
     }
@@ -52,7 +53,7 @@ class NginxConfigGeneratorServiceTest extends TestCase
             'framework' => WebsiteFramework::Static,
         ]);
 
-        $config = (new NginxConfigGeneratorService)->generate($website);
+        $config = app(NginxConfigGeneratorService::class)->generate($website);
 
         $this->assertStringContainsString('root /var/www/example.com;', $config);
         $this->assertStringNotContainsString('/public;', $config);
@@ -62,10 +63,35 @@ class NginxConfigGeneratorServiceTest extends TestCase
     {
         $website = $this->makeWebsite(['status' => WebsiteStatus::Suspended]);
 
-        $config = (new NginxConfigGeneratorService)->generate($website);
+        $config = app(NginxConfigGeneratorService::class)->generate($website);
 
         $this->assertStringContainsString('return 503', $config);
         $this->assertStringNotContainsString('fastcgi_pass', $config);
+    }
+
+    public function test_a_site_with_active_ssl_gets_a_443_block_and_an_http_redirect(): void
+    {
+        config(['mtp.ssl_certificates_path' => sys_get_temp_dir().'/mtp-nginx-ssl-test']);
+
+        $website = $this->makeWebsite(['ssl_status' => SslStatus::Active]);
+
+        $config = app(NginxConfigGeneratorService::class)->generate($website);
+
+        $this->assertStringContainsString('listen 443 ssl;', $config);
+        $this->assertStringContainsString("{$website->domain}.crt", $config);
+        $this->assertStringContainsString('ssl_certificate_key', $config);
+        $this->assertStringContainsString('return 301 https://$host$request_uri;', $config);
+    }
+
+    public function test_a_site_without_ssl_only_listens_on_port_80(): void
+    {
+        $website = $this->makeWebsite(['ssl_status' => SslStatus::None]);
+
+        $config = app(NginxConfigGeneratorService::class)->generate($website);
+
+        $this->assertStringContainsString('listen 80;', $config);
+        $this->assertStringNotContainsString('listen 443', $config);
+        $this->assertStringNotContainsString('ssl_certificate', $config);
     }
 
     /**

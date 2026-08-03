@@ -766,6 +766,39 @@ Cloudflare zone is recommended before production use** - a disclosed gap.
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md`
       updated
 
+## Done — Module 10: SSL
+
+Hand-written minimal ACME v2 (RFC 8555) client since `acmephp/core` is
+dependency-incompatible with Laravel 12's Guzzle 7 stack. Cannot be verified
+end-to-end in this dev environment (no public domain for Let's Encrypt to
+validate against) - see CLAUDE.md.
+
+- [x] `ssl_certificates` schema + `App\Enums\{CertificateType,CertificateStatus}`
+- [x] `CertificateParserService` (real openssl_x509_parse/check_private_key,
+      fully tested against genuine self-signed certs), `CertificateStorageService`
+      (writes active cert/key PEM to disk for nginx)
+- [x] `AcmeClient` - JWS signing (RS256), nonce handling, order/authorization/
+      challenge/finalize/download; JWS signature verified against the real
+      account public key in tests, not just asserted present
+- [x] `LetsEncryptIssuanceService` - full orchestration; http-01 writes the
+      challenge file into the website's own document root, dns-01 reuses
+      Module 9's `CloudflareZoneService` for wildcard domains
+- [x] Actions: Upload/IssueLetsEncrypt/Renew/RevokeCertificate, each logging
+      `activity('ssl')`; `SslCertificate::syncWebsiteSslStatus()` keeps
+      `Website::ssl_status` truthful after every mutation
+- [x] `app:renew-ssl-certificates` (scheduled daily) renews certs within
+      `mtp.ssl_renewal_threshold_days` of expiry
+- [x] `NginxConfigGeneratorService` emits a real `listen 443 ssl` block +
+      http→https redirect once SSL is Active
+- [x] `ManageSsl` Filament page (issue/upload/renew/revoke/history), reusing
+      `WebsitePolicy::update()` - no new permission
+- [x] Real Windows/AMPPS gotcha found and fixed: this PHP build has no
+      working default `openssl.cnf`, so every `openssl_pkey_new()`/
+      `openssl_csr_new()` call needs an explicit `config` path
+      (`config('mtp.openssl_config_path')`) - not needed on a real Linux server
+- [x] `php artisan test` green (173 passed, 1 skipped), `vendor/bin/pint` clean
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md` updated
+
 ## Up Next
-- [ ] Module 10 — SSL (see docs/Roadmap.md)
+- [ ] Module 11 — Cron Manager (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

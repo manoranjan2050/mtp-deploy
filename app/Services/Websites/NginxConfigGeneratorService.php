@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Websites;
 
+use App\Enums\SslStatus;
 use App\Enums\WebsiteStatus;
 use App\Models\Website;
+use App\Services\Ssl\CertificateStorageService;
 
 /**
  * Pure string generation - no filesystem or network I/O, so it's fully unit
@@ -14,6 +16,10 @@ use App\Models\Website;
  */
 class NginxConfigGeneratorService
 {
+    public function __construct(
+        private readonly CertificateStorageService $certificateStorage,
+    ) {}
+
     /**
      * Dispatches on the website's current status, so callers always get the
      * config that matches its actual state - a suspended site never
@@ -35,16 +41,27 @@ class NginxConfigGeneratorService
 
         $socket = "/var/run/php/php{$website->php_version}-fpm.sock";
 
+        $listen = $website->ssl_status === SslStatus::Active
+            ? "listen 443 ssl;\n            listen [::]:443 ssl;"
+            : "listen 80;\n            listen [::]:80;";
+
+        $sslDirectives = $website->ssl_status === SslStatus::Active
+            ? $this->sslDirectives($website)
+            : '';
+
+        $redirect = $website->ssl_status === SslStatus::Active
+            ? $this->httpToHttpsRedirectBlock($serverNames)
+            : '';
+
         return <<<NGINX
         # Managed by MTP Deploy - do not edit outside the panel; changes will
         # be overwritten on the next save.
-        server {
-            listen 80;
-            listen [::]:80;
+        {$redirect}server {
+            {$listen}
 
             server_name {$serverNames};
             root {$website->publicPath()};
-
+        {$sslDirectives}
             index index.php index.html;
 
             access_log /var/log/nginx/{$website->domain}-access.log;
@@ -63,6 +80,37 @@ class NginxConfigGeneratorService
 
             location ~ /\.(?!well-known).* {
                 deny all;
+            }
+        }
+
+        NGINX;
+    }
+
+    private function sslDirectives(Website $website): string
+    {
+        $paths = $this->certificateStorage->paths($website);
+
+        return <<<NGINX
+
+
+            ssl_certificate {$paths['certificate']};
+            ssl_certificate_key {$paths['privateKey']};
+            ssl_protocols TLSv1.2 TLSv1.3;
+
+        NGINX;
+    }
+
+    private function httpToHttpsRedirectBlock(string $serverNames): string
+    {
+        return <<<NGINX
+        server {
+            listen 80;
+            listen [::]:80;
+
+            server_name {$serverNames};
+
+            location / {
+                return 301 https://\$host\$request_uri;
             }
         }
 

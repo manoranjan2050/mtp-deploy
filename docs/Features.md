@@ -169,10 +169,19 @@ module currently in progress.
       CLAUDE.md.
 
 ## Module 10 — SSL
-- [ ] Let's Encrypt issuance
-- [ ] Auto-renewal
-- [ ] Custom certificate upload
-- [ ] Wildcard certificate support (DNS-01 challenge via Cloudflare)
+- [x] Let's Encrypt issuance - a hand-written minimal RFC 8555 (ACME v2)
+      client (`App\Services\Ssl\AcmeClient`), since no existing PHP ACME
+      library was dependency-compatible with this project's Laravel
+      12/Guzzle 7 stack. **Cannot be verified end-to-end in this dev
+      environment** - see CLAUDE.md/docs/Security.md.
+- [x] Auto-renewal (`app:renew-ssl-certificates`, scheduled daily; renews any
+      Let's Encrypt cert within `mtp.ssl_renewal_threshold_days` of expiry)
+- [x] Custom certificate upload (fully real/testable - cert/key match
+      validation, domain/expiry extraction via `openssl_x509_parse`)
+- [x] Wildcard certificate support (DNS-01 challenge via the Cloudflare zone
+      connected in Module 9)
+- [x] nginx vhost now emits a real `listen 443 ssl` block + an http→https
+      redirect once a website's SSL status is Active
 
 ## Module 11 — Cron Manager
 - [ ] Create / Edit / Delete cron entries

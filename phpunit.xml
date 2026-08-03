@@ -36,6 +36,11 @@
         <env name="DB_ADMIN_PORT" value="3306"/>
         <env name="DB_ADMIN_USERNAME" value="root"/>
         <env name="DB_ADMIN_PASSWORD" value=""/>
+        <!-- Module 10 (SSL) - this machine's PHP has no working default
+             openssl.cnf wired into php.ini, so openssl_pkey_new()/
+             openssl_csr_new() fail outright without an explicit config path.
+             Not needed on a real Linux CI runner/server. -->
+        <env name="MTP_OPENSSL_CONFIG_PATH" value="C:\Program Files\Ampps\php82\extras\ssl\openssl.cnf"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

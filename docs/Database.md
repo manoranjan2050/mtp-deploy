@@ -349,11 +349,36 @@ edit their own website can also manage its Cloudflare zone); `manage cloudflare
 tunnels` (admin/super-admin only, see `ServerPolicy::manageTunnels()`) for
 tunnels specifically, since a tunnel reaches the whole server, not one site.
 
-## Forward-Looking Schema (sketched, subject to change per-module)
+## Module 10 — SSL ✅ (as built)
 
-### `ssl_certificates` (Module 10)
-id, website_id, type (enum: lets_encrypt/custom), domains (json), issued_at,
-expires_at, status (enum: active/expiring/expired/revoked), auto_renew (bool).
+### `ssl_certificates`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| website_id | fk websites, cascadeOnDelete | not unique - history is kept, `Website::currentCertificate()` finds the active/expiring one |
+| type | string, cast to `App\Enums\CertificateType` default `lets_encrypt` | lets_encrypt/custom |
+| domains | json | every domain/SAN this certificate actually covers |
+| certificate | longtext nullable | full PEM chain |
+| private_key | longtext nullable, cast `encrypted` | |
+| issued_at / expires_at | timestamp nullable | parsed from the real certificate via `openssl_x509_parse` |
+| status | string, cast to `App\Enums\CertificateStatus` default `pending` | pending/active/expiring/expired/revoked/failed |
+| auto_renew | bool default true | only meaningful for `lets_encrypt` - a `custom` cert is never auto-renewed |
+| last_renewal_attempt_at / last_error | timestamp/text nullable | |
+| timestamps | | |
+
+No new permissions - zone/DNS/SSL/cache-style reasoning applies again here:
+issuing/uploading/revoking a certificate reuses the existing `WebsitePolicy::update()`
+ability, the same trust level as toggling SSL was already gated at in Module 3.
+
+`SslCertificate::syncWebsiteSslStatus()` keeps `Website::ssl_status` (Module 3)
+truthful about whatever the certificate's real status is - it's called after
+every mutating SSL action so the website's own status is never left saying
+"Active" once the certificate is revoked/expired/failed.
+
+The Let's Encrypt **account** key and account URL (one shared ACME account for
+the whole installation, not per-website) are stored as plain files at
+`storage/app/acme/account-key.pem` / `account-url.txt`, not in this table -
+they're infrastructure for talking to the ACME server, not a certificate record.
 
 ### `cron_jobs` (Module 11)
 id, server_id, website_id nullable, label, command, schedule (cron expression),

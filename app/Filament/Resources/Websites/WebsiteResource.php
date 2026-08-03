@@ -9,6 +9,7 @@ use App\Filament\Resources\Websites\Pages\EditWebsite;
 use App\Filament\Resources\Websites\Pages\ListWebsites;
 use App\Filament\Resources\Websites\Pages\ManageCloudflare;
 use App\Filament\Resources\Websites\Pages\ManageFiles;
+use App\Filament\Resources\Websites\Pages\ManageSsl;
 use App\Filament\Resources\Websites\Schemas\WebsiteForm;
 use App\Filament\Resources\Websites\Tables\WebsitesTable;
 use App\Models\Website;
@@ -71,6 +72,7 @@ class WebsiteResource extends Resource
             'edit' => EditWebsite::route('/{record}/edit'),
             'files' => ManageFiles::route('/{record}/files'),
             'cloudflare' => ManageCloudflare::route('/{record}/cloudflare'),
+            'ssl' => ManageSsl::route('/{record}/ssl'),
         ];
     }
 

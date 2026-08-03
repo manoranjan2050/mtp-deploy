@@ -17,7 +17,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 7 | File Manager (browse/upload/download/zip/edit) | ✅ | 3 |
 | 8 | Terminal (browser SSH via xterm.js) | ✅ | 1 |
 | 9 | Cloudflare (DNS, tunnels, SSL, cache purge) | ✅ | 3 |
-| 10 | SSL (Let's Encrypt, renewal, custom certs, wildcard) | ⬜ | 3, 9 |
+| 10 | SSL (Let's Encrypt, renewal, custom certs, wildcard) | ✅ | 3, 9 |
 | 11 | Cron Manager | ⬜ | 3 |
 | 12 | Queue Manager (Supervisor) | ⬜ | 3, 6 |
 | 13 | Backups (site + database, scheduled) | ⬜ | 3, 4 |
@@ -30,7 +30,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 10 — SSL.** Modules 1–9 are complete - 148 passing tests, Pint
+**Module 11 — Cron Manager.** Modules 1–10 are complete - 173 passing tests, Pint
 clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
@@ -81,6 +81,24 @@ to do one manual smoke test against a real zone before relying on this in
 production. Tunnels only orchestrate the Cloudflare-side tunnel *object* - actually
 running the `cloudflared` connector daemon on the server (so real traffic flows
 through it) is a deliberate scope gap, also documented in CLAUDE.md.
+
+**Module 10 (SSL)** hand-writes a minimal RFC 8555 (ACME v2) client
+(`App\Services\Ssl\AcmeClient`) rather than pulling in an existing PHP ACME
+library - `acmephp/core` (the standard choice) is fundamentally incompatible
+with Laravel 12's Guzzle 7/psr-http-message 2.0 dependency tree and would
+require downgrading core HTTP packages the whole app depends on. The hand-written
+client covers only the happy path needed for this panel (no account key
+rollover, limited retry-on-badNonce handling) and, like Module 9, cannot be
+verified end-to-end here - Let's Encrypt validates domain control by connecting
+back to a public IP/domain that doesn't exist in this sandbox. Every ACME
+interaction is tested via `Http::fake()` against real ACME v2 response shapes,
+**and** the JWS signing itself is verified by actually checking the produced
+signature against the account's real public key (not just asserting a header
+exists) - see CLAUDE.md. Also worth noting for any future OpenSSL work: this
+specific dev machine's PHP build has no working default `openssl.cnf` wired
+into php.ini, so every `openssl_pkey_new()`/`openssl_csr_new()` call needs an
+explicit `config` path (`config('mtp.openssl_config_path')`) or it fails
+outright - not an issue on a real Linux server.
 
 Checklist items deliberately deferred, not forgotten:
 - Module 3's "Website logs" - real log tailing is Module 14's job.

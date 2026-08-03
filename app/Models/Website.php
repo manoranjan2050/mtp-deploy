@@ -98,6 +98,18 @@ class Website extends Model
         return $this->hasOne(CloudflareZone::class);
     }
 
+    public function certificates(): HasMany
+    {
+        return $this->hasMany(SslCertificate::class)->latest('id');
+    }
+
+    public function currentCertificate(): ?SslCertificate
+    {
+        return $this->certificates()
+            ->whereIn('status', ['active', 'expiring'])
+            ->first();
+    }
+
     public function latestSuccessfulDeployment(): ?Deployment
     {
         return $this->deployments()->where('status', 'success')->first();

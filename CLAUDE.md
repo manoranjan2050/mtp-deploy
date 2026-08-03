@@ -284,6 +284,46 @@ Two scope decisions worth knowing before extending this module:
    is never set to `Active` by this module, honestly reflecting that gap rather
    than faking a "connected" state.
 
+## SSL (Module 10): hand-written ACME client, and a real Windows OpenSSL gotcha
+
+`acmephp/core` (the standard PHP ACME client) is **not installable** in this
+project - every release still pins `guzzlehttp/psr7 ^1.0`/`psr/http-message ^1.0`,
+which conflicts with Laravel 12's Guzzle 7/psr-http-message 2.0 requirement.
+`composer require acmephp/core --with-all-dependencies` would downgrade Guzzle
+across the whole app - not acceptable. `App\Services\Ssl\AcmeClient` is a
+from-scratch, narrowly-scoped RFC 8555 (ACME v2) client instead: JWS request
+signing (RS256), nonce handling, order/authorization/challenge/finalize/download.
+It only covers the happy path this panel needs - no account key rollover, no
+external account binding, limited retry-on-badNonce handling. Don't reach for
+a general ACME library here without re-checking the dependency conflict first;
+it may have changed.
+
+**This dev environment cannot complete a real Let's Encrypt issuance end to
+end** - Let's Encrypt's servers validate domain control by connecting back to
+a public IP/domain, which doesn't exist in this sandbox (same category of gap
+as Module 9's Cloudflare account). Every ACME interaction is tested via
+`Http::fake()` against real, documented ACME v2 response shapes instead. The
+one thing worth doing differently from Module 9's Cloudflare tests: the JWS
+signing itself is verified by actually checking the produced signature against
+the account key's real public key (`openssl_verify()` in `AcmeClientTest`), not
+just asserting a header exists - this is the highest-risk code in the module
+(a subtly wrong JWS would fail silently against a real ACME server, never
+against a permissive fake), so it gets checked for real even though the
+network round-trip can't be.
+
+**This machine's PHP build has no working default `openssl.cnf`** - every
+`openssl_pkey_new()`/`openssl_csr_new()`/`openssl_csr_sign()` call fails
+outright with `error:80000003:system library::No such process` unless an
+explicit config path is passed in the options array (`['config' => $path]`).
+Fixed by `config('mtp.openssl_config_path')`, pointing at
+`C:/Program Files/Ampps/php82/extras/ssl/openssl.cnf` on this machine (set via
+`.env`'s `MTP_OPENSSL_CONFIG_PATH` and mirrored in `phpunit.xml` for tests).
+A real Linux server's PHP build normally has this working out of the box and
+needs no override - don't "fix" this globally, it's a local dev-environment
+quirk. Also: writing a Windows path with backslashes into `.env` breaks
+dotenv parsing (`Encountered an unexpected escape sequence`) - always use
+forward slashes in `.env` values, even for Windows paths.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

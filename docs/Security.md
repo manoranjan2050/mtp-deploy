@@ -128,6 +128,35 @@ model. Security-relevant constraints, restated:
   connector attached; `cloudflare_tunnels.status` reflects this honestly by
   never being set to `Active` by this module.
 
+## SSL (Module 10, as built)
+- Every certificate's private key is stored **encrypted** on `ssl_certificates.private_key`
+  (Laravel's `encrypted` cast), same principle as Module 9's Cloudflare API tokens.
+- A hand-written minimal ACME v2 client (`App\Services\Ssl\AcmeClient`) is used
+  instead of an existing PHP ACME library, because `acmephp/core` (the standard
+  choice) is incompatible with this project's Laravel 12/Guzzle 7 dependency
+  tree - see CLAUDE.md. It implements only the happy-path RFC 8555 flow needed
+  to issue a certificate (account registration, order, http-01/dns-01 challenge,
+  finalize, download) - no account key rollover, no external account binding,
+  limited retry-on-badNonce handling. Treat it as a narrowly-scoped client, not
+  a general-purpose ACME library.
+- **This dev environment cannot complete a real issuance** - Let's Encrypt
+  validates domain control by connecting back to a public IP/domain, which
+  doesn't exist here. `config('mtp.acme_directory_url')` defaults to Let's
+  Encrypt's **staging** directory specifically so that any real-world trial run
+  hits no rate limits and issues certs signed by an untrusted test CA - do not
+  point this at the production directory
+  (`https://acme-v02.api.letsencrypt.org/directory`) without understanding
+  Let's Encrypt's rate limits first. Every ACME interaction is tested via
+  `Http::fake()` against real, documented ACME v2 response shapes, and the JWS
+  signing is verified by actually checking the signature against the account's
+  real public key (`AcmeClientTest`) - not just asserting a header exists.
+- Custom certificate uploads are validated before being trusted: the certificate
+  must actually parse as X.509 (`openssl_x509_parse`) and its private key must
+  actually match it (`openssl_x509_check_private_key`) - a mismatched pair is
+  rejected outright, never silently stored.
+- Issuing/uploading/revoking a certificate reuses `WebsitePolicy::update()` (no
+  new permission) - the same trust level Module 3 already gated SSL toggling at.
+
 ## File Manager / Uploads (Module 7, as built)
 - Every operation is scoped to one website's `document_root` via
   `App\Services\FileManager\FileManagerService`, the only class that touches a

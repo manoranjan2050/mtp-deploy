@@ -173,6 +173,11 @@ class WebsitesTable
                     ->icon(Heroicon::OutlinedCloud)
                     ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
                     ->url(fn (Website $record): string => WebsiteResource::getUrl('cloudflare', ['record' => $record])),
+                Action::make('ssl')
+                    ->label('SSL')
+                    ->icon(Heroicon::OutlinedLockClosed)
+                    ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
+                    ->url(fn (Website $record): string => WebsiteResource::getUrl('ssl', ['record' => $record])),
                 EditAction::make(),
             ])
             ->headerActions([

@@ -17,7 +17,7 @@ live checklist of what's currently being built.
 
 **Modules 1 (Authentication), 2 (Dashboard), 3 (Website Manager), 4 (Database
 Manager), 5 (Deployment), 6 (Laravel Deployment), 7 (File Manager), 8 (Terminal),
-and 9 (Cloudflare) are complete.** Currently in progress: Module 10 — SSL.
+9 (Cloudflare), and 10 (SSL) are complete.** Currently in progress: Module 11 — Cron Manager.
 
 ## Tech Stack
 

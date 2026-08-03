@@ -63,4 +63,40 @@ return [
 
     'terminal_command_timeout' => env('MTP_TERMINAL_COMMAND_TIMEOUT', 30),
 
+    /*
+    |--------------------------------------------------------------------------
+    | SSL (Module 10)
+    |--------------------------------------------------------------------------
+    |
+    | Where issued/uploaded certificate + private key PEM files are written on
+    | disk for nginx to reference. Defaults to the ACME **staging** directory,
+    | not production - staging has no rate limits and issues certs signed by
+    | an untrusted test CA, which is exactly what a dev/CI environment should
+    | talk to. Point MTP_ACME_DIRECTORY_URL at the production URL
+    | (https://acme-v02.api.letsencrypt.org/directory) only on a real server
+    | with a real public domain.
+    |
+    */
+
+    'ssl_certificates_path' => env('MTP_SSL_CERTIFICATES_PATH', storage_path('app/ssl-certificates')),
+
+    'ssl_renewal_threshold_days' => env('MTP_SSL_RENEWAL_THRESHOLD_DAYS', 30),
+
+    'acme_directory_url' => env('MTP_ACME_DIRECTORY_URL', 'https://acme-staging-v02.api.letsencrypt.org/directory'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenSSL config file path (Windows/AMPPS dev quirk)
+    |--------------------------------------------------------------------------
+    |
+    | This machine's PHP build has no working default openssl.cnf wired into
+    | php.ini, so openssl_pkey_new()/openssl_csr_new() fail outright with
+    | "system library: No such process" until an explicit config path is
+    | passed in their options array. A real Linux server's PHP build normally
+    | has this working out of the box and needs no override - see CLAUDE.md.
+    |
+    */
+
+    'openssl_config_path' => env('MTP_OPENSSL_CONFIG_PATH'),
+
 ];

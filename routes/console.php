@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('app:capture-system-metrics')->everyMinute();
+Schedule::command('app:renew-ssl-certificates')->daily();
