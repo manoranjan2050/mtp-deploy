@@ -892,6 +892,32 @@ Also built at the user's explicit request, outside the numbered module list:
 - [ ] Failed jobs list/retry, live worker monitor **not built** - disclosed
       gaps, see docs/Features.md
 
+## Done — Module 14: Logs
+
+- [x] `LogFileReaderService` (pure, fully testable) - real `SplFileObject`
+      tail/search against real log files, capped at 300 lines/matches so a
+      multi-gigabyte log can't exhaust memory; unlike most modules this needs
+      no special system binary, so it's fully exercised on any OS including
+      this Windows dev box
+- [x] `WebsiteLogSourceResolver` - fixed allowlist of log sources per website
+      (nginx access/error logs via `NginxConfigGeneratorService`'s own path
+      convention, plus the Laravel log for Laravel-framework sites only),
+      same "closed list, not free-form path" principle as Module 3's
+      `WhitelistedOperation`
+- [x] `ManageLogs` Filament page (per-website, like Cloudflare/SSL/Backups/
+      Queue) - reuses `WebsitePolicy::view()` since this is read-only and
+      viewers already hold `view websites`
+- [x] `ApplicationLog` Filament page (system-wide, MTP Deploy's own
+      `storage/logs/laravel.log`) - new `view application logs` permission,
+      admin/super-admin only, same trust level as Terminal/Cron
+- [x] `php artisan test` green (233 passed, 1 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: application log showed a real log line
+      written via `Log::info()`; per-website page listed all three sources,
+      honestly reported a missing nginx log file, and correctly displayed the
+      real Laravel log content after switching sources; no console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`,
+      `docs/Security.md` updated
+
 ## Up Next
-- [ ] Module 14 — Logs (see docs/Roadmap.md)
+- [ ] Module 15 — Monitoring & alerts (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

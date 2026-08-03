@@ -205,6 +205,25 @@ model. Security-relevant constraints, restated:
   since filesystem mutations aren't Eloquent model changes `LogsActivity` can
   observe automatically.
 
+## Logs (Module 14, as built)
+- Log sources are never a free-form path - `WebsiteLogSourceResolver` returns a
+  fixed, closed list per website (nginx access/error logs, plus the Laravel log
+  for Laravel-framework sites only). There is no text field anywhere that lets a
+  user type an arbitrary filesystem path to read.
+- `LogFileReaderService::tail()`/`search()` both cap how much they read (300
+  lines/matches) so a multi-gigabyte log file can't exhaust memory or hang a
+  request - the same "bound every read against attacker-influenced input" idea
+  as Module 7's zip-bomb guard, applied to file size instead of compression
+  ratio.
+- The per-website `ManageLogs` page reuses `WebsitePolicy::view()` (no new
+  permission) - reading a log is read-only, so every role that can already see
+  the website, including `viewer`, is trusted with it.
+- The system-wide `ApplicationLog` page (MTP Deploy's own application log,
+  which can contain stack traces, request data, and other operationally
+  sensitive detail about the panel itself, not just one managed website) is
+  gated by a new `view application logs` permission, admin/super-admin only -
+  the same trust level as Terminal/Cron, not delegated to `developer`/`viewer`.
+
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must
   run behind HTTPS (the panel's own SSL, independent of the SSL the panel provisions

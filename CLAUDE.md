@@ -384,6 +384,30 @@ side effect that can fail independently of the DB write succeeding, return
 both, and let the caller (a Filament page) decide how to surface a partial
 failure rather than the Action silently swallowing or throwing on it.
 
+## Logs (Module 14): the first server-facing module that needs no special binary
+
+Every prior module reading real server state (crontab sync, supervisorctl,
+terminal exec) has an honest-failure path on this Windows dev box because the
+underlying binary doesn't exist here. `LogFileReaderService` doesn't have
+that problem - `SplFileObject`-based file I/O works identically on any OS, so
+it's the first module in this project fully exercised for real without a
+disclosed dev-environment gap.
+
+`SplFileObject::seek(PHP_INT_MAX)` then reading `->key()` is the trick used to
+count total lines cheaply before seeking back to `total - maxLines` for
+`tail()` - but a normally newline-terminated file (the common case) leaves one
+phantom empty "line" after the last `\n`, since `SplFileObject` counts that
+trailing empty string as its own line. Pop it off if it's empty, matching the
+same convention `wc -l`/`tail` themselves use - otherwise `tail($path, 10)` on
+a 500-line file returns 11 lines, off by one.
+
+Filament's own `Page` class already declares a `content()` method (with a
+completely different signature, returning a `Schema`) - naming a Livewire
+computed property `content()` on a page subclass is a fatal "declaration not
+compatible" error at parse time, not a runtime surprise. Named it
+`logContent()` instead. Worth checking `Page`'s own method list before naming
+a computed property/method on any Filament page subclass.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

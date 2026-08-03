@@ -24,6 +24,8 @@ return [
 
     'sites_root' => env('MTP_SITES_ROOT', '/var/www'),
 
+    'nginx_log_path' => env('MTP_NGINX_LOG_PATH', '/var/log/nginx'),
+
     /*
     |--------------------------------------------------------------------------
     | Database Manager (Module 4)

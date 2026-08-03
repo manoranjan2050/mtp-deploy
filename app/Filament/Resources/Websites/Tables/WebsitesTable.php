@@ -188,6 +188,11 @@ class WebsitesTable
                     ->icon(Heroicon::OutlinedQueueList)
                     ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
                     ->url(fn (Website $record): string => WebsiteResource::getUrl('queue-workers', ['record' => $record])),
+                Action::make('logs')
+                    ->label('Logs')
+                    ->icon(Heroicon::OutlinedDocumentText)
+                    ->authorize(fn (Website $record): bool => auth()->user()->can('view', $record))
+                    ->url(fn (Website $record): string => WebsiteResource::getUrl('logs', ['record' => $record])),
                 EditAction::make(),
             ])
             ->headerActions([

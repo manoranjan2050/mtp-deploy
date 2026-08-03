@@ -453,6 +453,24 @@ honestly in docs/Features.md, not silently glossed over. Shipping backups
 off-server is a natural fit for Module 18 (Multi Server) once a second server
 exists to ship them to.
 
+## Module 14 — Logs ✅ (as built)
+
+No new tables. Log files are read directly off disk via `LogFileReaderService`
+(real `SplFileObject` tail/search, capped at 300 lines/matches) - there is no
+database-backed log-line index; the file **is** the source of truth, same
+"never fake server state" principle as Module 2's `SystemMetricsService`.
+
+`WebsiteLogSourceResolver` resolves a fixed, closed set of paths per website -
+nginx access/error logs (the same path convention `NginxConfigGeneratorService`
+writes into the vhost config) plus the Laravel log for Laravel-framework
+sites only - never an arbitrary user-supplied path.
+
+New permission: `view application logs` (admin/super-admin only) gates the
+system-wide `ApplicationLog` page (MTP Deploy's own `storage/logs/laravel.log`).
+The per-website `ManageLogs` page has no new permission - it reuses
+`WebsitePolicy::view()`, since reading a log is a read-only ability every
+role that can already see the website (including `viewer`) is trusted with.
+
 ### `notification_channels` (Module 16)
 id, user_id, channel (enum: email/telegram/discord/slack), config (encrypted json),
 is_enabled, timestamps.

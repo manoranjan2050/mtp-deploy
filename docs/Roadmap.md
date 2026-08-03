@@ -21,7 +21,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 11 | Cron Manager | ✅ | 3 |
 | 12 | Queue Manager (Supervisor) | ✅ | 3, 6 |
 | 13 | Backups (site + database, scheduled) | ✅ | 3, 4 |
-| 14 | Logs (Laravel/PHP/nginx/MariaDB, search) | ⬜ | 3 |
+| 14 | Logs (Laravel/PHP/nginx/MariaDB, search) | ✅ | 3 |
 | 15 | Monitoring (CPU/RAM/disk/temp/bandwidth/processes/alerts) | ⬜ | 2 |
 | 16 | Notifications (Telegram/Email/Discord/Slack) | ⬜ | 1 |
 | 17 | API (REST + tokens + webhooks) | ⬜ | 1 |

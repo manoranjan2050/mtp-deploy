@@ -234,12 +234,25 @@ module currently in progress.
       (Multi Server) makes a second server available to ship backups to.
 
 ## Module 14 — Logs
-- [ ] Laravel log viewer (per site, per channel)
-- [ ] PHP-FPM error log
-- [ ] nginx access/error log
-- [ ] MariaDB slow/error log
-- [ ] Full-text search across log sources
-- [ ] Download raw log file
+- [x] Laravel log viewer (per site) - `ManageLogs` Filament page, real
+      `SplFileObject`-based tail (last 300 lines) of the site's own
+      `storage/logs/laravel.log`
+- [x] nginx access/error log (per site) - same page, using the exact path
+      `NginxConfigGeneratorService` writes into the vhost config
+- [x] Application-wide log viewer - `ApplicationLog` Filament page for MTP
+      Deploy's own `storage/logs/laravel.log`, gated by a new
+      `view application logs` permission (admin/super-admin only)
+- [x] Full-text search across the active log source - case-insensitive
+      substring search, capped at 300 matches
+- [ ] PHP-FPM error log - **not built**; this dev environment has no
+      `php-fpm` process/log path to point at (AMPPS runs PHP differently).
+      `WebsiteLogSourceResolver`'s source list is designed to grow, so adding
+      it is a small addition once a target path convention is settled.
+- [ ] MariaDB slow/error log - **not built**; same reasoning, revisit once a
+      real MariaDB log path convention is settled for a production server.
+- [ ] Download raw log file - **not built**; only tail/search is exposed in
+      the UI so far, same deferred pattern as Module 13's "download backup
+      archive."
 
 ## Module 15 — Monitoring
 - [ ] CPU/RAM/Disk historical graphs

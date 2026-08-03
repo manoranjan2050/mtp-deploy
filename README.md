@@ -33,8 +33,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 11 | Cron Manager — real crontab sync, run-now, cron expression validation | ✅ |
 | 12 | Queue Manager — Supervisor program generation, start/stop/restart | ✅ |
 | 13 | Backups — files + database + git snapshots, scheduled, restore | ✅ |
-| 14 | Logs (Laravel/PHP/nginx/MariaDB) | ⬜ next |
-| 15 | Monitoring & alerts | ⬜ |
+| 14 | Logs — Laravel/nginx log tail & search, per-website and application-wide | ✅ |
+| 15 | Monitoring & alerts | ⬜ next |
 | 16 | Notifications (Telegram/Email/Discord/Slack) | ⬜ |
 | 17 | API (REST + tokens + webhooks) | ⬜ |
 | 18 | Multi Server | ⬜ |

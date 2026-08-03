@@ -64,8 +64,8 @@ class NginxConfigGeneratorService
         {$sslDirectives}
             index index.php index.html;
 
-            access_log /var/log/nginx/{$website->domain}-access.log;
-            error_log /var/log/nginx/{$website->domain}-error.log;
+            access_log {$this->accessLogPath($website)};
+            error_log {$this->errorLogPath($website)};
 
             location / {
                 try_files \$uri \$uri/ /index.php?\$query_string;
@@ -117,6 +117,16 @@ class NginxConfigGeneratorService
         NGINX;
     }
 
+    public function accessLogPath(Website $website): string
+    {
+        return rtrim((string) config('mtp.nginx_log_path'), '/')."/{$website->domain}-access.log";
+    }
+
+    public function errorLogPath(Website $website): string
+    {
+        return rtrim((string) config('mtp.nginx_log_path'), '/')."/{$website->domain}-error.log";
+    }
+
     private function generateSuspended(Website $website): string
     {
         $serverNames = collect([$website->domain, ...($website->aliases ?? [])])
@@ -132,8 +142,8 @@ class NginxConfigGeneratorService
 
             server_name {$serverNames};
 
-            access_log /var/log/nginx/{$website->domain}-access.log;
-            error_log /var/log/nginx/{$website->domain}-error.log;
+            access_log {$this->accessLogPath($website)};
+            error_log {$this->errorLogPath($website)};
 
             location / {
                 return 503 "This site has been suspended.";
