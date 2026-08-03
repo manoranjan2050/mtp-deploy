@@ -277,8 +277,15 @@ log "Writing the nginx vhost for the panel itself"
 NGINX_SITE_PATH="/etc/nginx/sites-available/mtp-deploy.conf"
 cat > "${NGINX_SITE_PATH}" <<NGINX
 server {
-    listen 80;
-    listen [::]:80;
+    # default_server is required here: without it, nginx just uses whichever
+    # vhost file loads first (effectively alphabetical), so adding any
+    # website whose config sorts before "mtp-deploy" (e.g. "helishield...")
+    # would silently steal every request that doesn't match a specific
+    # website's server_name - including plain http://<server-ip>/admin -
+    # and the panel would 404 with a bare "File not found." that looks
+    # exactly like a permissions bug, not a vhost-ordering one.
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
     server_name ${MTP_DOMAIN};
     root ${MTP_APP_DIR}/public;

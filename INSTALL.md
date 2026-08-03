@@ -170,6 +170,23 @@ starts on boot — nothing here needs a manual restart after a reboot.
   /home/<user>` (traverse-only, doesn't expose directory listings). Newer
   `install.sh` does this automatically for every ancestor directory of the
   app path; re-run it after `git pull` if you hit this on an older checkout.
+- **`/admin` returns a bare 404 with body `File not found.`, but *only after*
+  adding a website through the panel** — this is a different cause than the
+  one above: nginx has no explicit `default_server` marked on port 80, so it
+  just uses whichever vhost file loads first (effectively alphabetical
+  order across `/etc/nginx/sites-enabled/*.conf`). Adding any website whose
+  domain sorts before `mtp-deploy` (e.g. `helishield.example.com`) makes
+  *that* site's vhost the new fallback for any request that doesn't match a
+  specific `server_name` — including a plain `http://<server-ip>/admin` or
+  any request with no matching `Host` header — so the panel silently stops
+  being reachable at its own bare IP. Confirm with
+  `grep -rn 'server_name\|default_server' /etc/nginx/sites-available/*.conf`.
+  Fixed by adding `default_server` to both `listen` lines in the panel's own
+  vhost (`/etc/nginx/sites-available/mtp-deploy.conf`), then
+  `sudo nginx -t && sudo systemctl reload nginx`. Newer `install.sh` writes
+  `default_server` automatically; re-run it after `git pull` on an older
+  checkout, or edit the existing vhost file by hand if you'd rather not
+  re-run the whole installer.
 
 ## Manual step-by-step
 
