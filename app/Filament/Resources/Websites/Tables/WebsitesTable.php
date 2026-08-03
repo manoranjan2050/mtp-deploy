@@ -178,6 +178,11 @@ class WebsitesTable
                     ->icon(Heroicon::OutlinedLockClosed)
                     ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
                     ->url(fn (Website $record): string => WebsiteResource::getUrl('ssl', ['record' => $record])),
+                Action::make('backups')
+                    ->label('Backups')
+                    ->icon(Heroicon::OutlinedArchiveBox)
+                    ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
+                    ->url(fn (Website $record): string => WebsiteResource::getUrl('backups', ['record' => $record])),
                 EditAction::make(),
             ])
             ->headerActions([

@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Websites;
 use App\Filament\Resources\Websites\Pages\CreateWebsite;
 use App\Filament\Resources\Websites\Pages\EditWebsite;
 use App\Filament\Resources\Websites\Pages\ListWebsites;
+use App\Filament\Resources\Websites\Pages\ManageBackups;
 use App\Filament\Resources\Websites\Pages\ManageCloudflare;
 use App\Filament\Resources\Websites\Pages\ManageFiles;
 use App\Filament\Resources\Websites\Pages\ManageSsl;
@@ -73,6 +74,7 @@ class WebsiteResource extends Resource
             'files' => ManageFiles::route('/{record}/files'),
             'cloudflare' => ManageCloudflare::route('/{record}/cloudflare'),
             'ssl' => ManageSsl::route('/{record}/ssl'),
+            'backups' => ManageBackups::route('/{record}/backups'),
         ];
     }
 

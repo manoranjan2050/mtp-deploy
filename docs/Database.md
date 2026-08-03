@@ -388,9 +388,38 @@ is_enabled, last_run_at, last_exit_code, timestamps.
 id, website_id, connection, queue, processes, status (enum: running/stopped/failed),
 supervisor_program_name, timestamps.
 
-### `backups` (Module 13)
-id, backupable_type/backupable_id (morph: website|database), disk, path, size_bytes,
-type (enum: manual/scheduled), status, created_by, timestamps, soft deletes.
+## Module 13 — Backups ✅ (as built)
+
+### `backups`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| website_id | fk websites, cascadeOnDelete | |
+| created_by | fk users, nullOnDelete, nullable | null = created by the scheduled command, not a person |
+| type | string, cast to `App\Enums\BackupType` default `full` | files/database/full/git |
+| disk_path | string nullable | absolute path to the zip archive; for `git` backups, `"{bare repo path}#{commit sha}"` instead - see `RestoreBackupAction` |
+| size_bytes | unsigned bigint nullable | null for `git` type (no single file to size) |
+| status | string, cast to `App\Enums\BackupStatus` default `pending` | pending/running/success/failed |
+| error | text nullable | |
+| started_at / completed_at | timestamp nullable | |
+| timestamps | | |
+
+### `websites` additions
+`backups_enabled` (bool, default false), `backup_retention_count` (unsigned int,
+default 7) - `app:run-scheduled-backups` (daily) creates a `full` backup for every
+website with `backups_enabled = true`, then prunes successful backups beyond
+`backup_retention_count`, newest kept.
+
+No new permissions - backup/restore reuses `WebsitePolicy::update()`, same
+reasoning as Modules 9/10.
+
+Every backup lives on the **same server's disk** as the website it protects
+(`config('mtp.website_backups_path')`/`config('mtp.git_backups_path')`, both
+under `storage/`, never inside the website's own document root) - a real
+disaster-recovery gap (a full-disk failure takes the backups too) called out
+honestly in docs/Features.md, not silently glossed over. Shipping backups
+off-server is a natural fit for Module 18 (Multi Server) once a second server
+exists to ship them to.
 
 ### `notification_channels` (Module 16)
 id, user_id, channel (enum: email/telegram/discord/slack), config (encrypted json),

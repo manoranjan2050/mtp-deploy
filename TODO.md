@@ -799,6 +799,34 @@ validate against) - see CLAUDE.md.
 - [x] `php artisan test` green (173 passed, 1 skipped), `vendor/bin/pint` clean
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md` updated
 
+## Done — Module 13: Backups (built ahead of order, at the user's request)
+
+Real zip file backups, reuses Module 4's real mysqldump-based
+`DatabaseBackupService`, plus a git-snapshot option using a bare shadow
+repository per website (independent of any deployment repo).
+
+- [x] `backups` table + `websites.backups_enabled`/`backup_retention_count`;
+      `App\Enums\{BackupType,BackupStatus}`
+- [x] `WebsiteFileBackupService` (real zip of the document root, zip-slip
+      guarded restore), `GitBackupService` (real git commits/checkout against
+      a bare shadow repo, same real-git pattern as Module 5's
+      `GitDeploymentService`)
+- [x] `CreateBackupAction` (files/database/full/git), `RestoreBackupAction`,
+      `DeleteBackupAction` - each logs `activity('backup')`; reuses
+      `WebsitePolicy::update()`, no new permission
+- [x] `app:run-scheduled-backups` (daily) - full backup for every website with
+      `backups_enabled`, prunes past `backup_retention_count`
+- [x] `ManageBackups` Filament page - schedule settings, backup-now buttons
+      per type, history with restore/delete
+- [x] Real bug found and fixed: `WebsiteFileBackupService::restore()`'s
+      zip-slip check compared a normalized path against a non-normalized one
+      containing Windows backslashes, silently skipping every zip entry -
+      see CLAUDE.md
+- [x] `php artisan test` green (186 passed, 1 skipped), `vendor/bin/pint` clean
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md` updated
+- [ ] Download-from-browser and off-server backup destinations **not built** -
+      disclosed gaps, see docs/Features.md
+
 ## Up Next
 - [ ] Module 11 — Cron Manager (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

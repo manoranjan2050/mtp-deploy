@@ -34,6 +34,8 @@ class Website extends Model
         'repository_url',
         'git_branch',
         'auto_deploy',
+        'backups_enabled',
+        'backup_retention_count',
         'created_by',
     ];
 
@@ -58,6 +60,8 @@ class Website extends Model
         'ssl_status' => 'none',
         'git_branch' => 'main',
         'auto_deploy' => false,
+        'backups_enabled' => false,
+        'backup_retention_count' => 7,
     ];
 
     protected static function booted(): void
@@ -75,6 +79,7 @@ class Website extends Model
             'status' => WebsiteStatus::class,
             'ssl_status' => SslStatus::class,
             'auto_deploy' => 'boolean',
+            'backups_enabled' => 'boolean',
         ];
     }
 
@@ -108,6 +113,16 @@ class Website extends Model
         return $this->certificates()
             ->whereIn('status', ['active', 'expiring'])
             ->first();
+    }
+
+    public function backups(): HasMany
+    {
+        return $this->hasMany(Backup::class)->latest('id');
+    }
+
+    public function databases(): HasMany
+    {
+        return $this->hasMany(Database::class);
     }
 
     public function latestSuccessfulDeployment(): ?Deployment

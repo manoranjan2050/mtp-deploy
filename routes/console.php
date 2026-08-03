@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('app:capture-system-metrics')->everyMinute();
 Schedule::command('app:renew-ssl-certificates')->daily();
+Schedule::command('app:run-scheduled-backups')->daily();

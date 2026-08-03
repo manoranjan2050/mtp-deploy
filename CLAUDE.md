@@ -324,6 +324,31 @@ quirk. Also: writing a Windows path with backslashes into `.env` breaks
 dotenv parsing (`Encountered an unexpected escape sequence`) - always use
 forward slashes in `.env` values, even for Windows paths.
 
+## Backups (Module 13): built out of roadmap order, and a Windows path bug
+
+Built ahead of Modules 11/12 (Cron Manager, Queue Manager) at the user's
+explicit request - the roadmap order is a default, not a hard constraint, when
+the user asks for something specific out of sequence. Cron/Queue Manager
+remain next in the original order once resumed.
+
+`WebsiteFileBackupService::restore()` originally compared a
+slash-normalized `$targetPath` against a **non-normalized** `$destination`
+(still containing Windows backslashes) in its zip-slip `str_starts_with()`
+guard - the comparison always failed, so every zip entry was silently
+skipped and `restore()` appeared to succeed while extracting nothing. Fixed
+by normalizing `$destination` to forward slashes once, up front, in both
+`backup()` and `restore()`. Caught immediately by
+`WebsiteFileBackupServiceTest`'s real backup→corrupt→restore round trip,
+which is exactly why that test doesn't just check "no exception thrown" but
+asserts the actual file content came back.
+
+`GitBackupService` reuses `App\Services\Deployments\GitDeploymentService`'s
+(Module 5) real-git-process pattern, but talks to a completely separate bare
+repository per website (`config('mtp.git_backups_path')`) - never the same
+repo a website might be deployed from. `-c user.name=`/`-c user.email=` are
+passed per-invocation rather than relying on system-wide git config, so this
+works on a fresh server with no git identity configured yet.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

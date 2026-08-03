@@ -196,11 +196,25 @@ module currently in progress.
 - [ ] Live worker monitor
 
 ## Module 13 — Backups
-- [ ] Website file backup
-- [ ] Database backup
-- [ ] Scheduled backup policy per site
-- [ ] Download backup archive
-- [ ] Restore from backup
+- [x] Website file backup (real zip archive of the document root)
+- [x] Database backup (reuses Module 4's real mysqldump-based `DatabaseBackupService`)
+- [x] Full backup (files + every database attached to the website, bundled
+      into one archive) and a git-snapshot backup (real commits to a bare
+      "shadow" git repository per website, independent of any deployment repo)
+- [x] Scheduled backup policy per site (`backups_enabled` + `backup_retention_count`
+      on `websites`; `app:run-scheduled-backups` runs daily, prunes beyond
+      the retention count)
+- [x] Restore from backup (files, database, full, and git snapshot - each
+      restores real data, verified in tests via genuine corrupt-then-restore
+      round trips)
+- [ ] Download backup archive from the browser - **not yet exposed in the
+      UI** (the file exists on disk at `Backup::disk_path`; a controller
+      route to stream it is a small addition, deferred for now)
+- [ ] Off-server backup destinations (S3, remote SSH, etc.) - **not built**;
+      every backup currently lives on the same server's disk as the website
+      it protects, which is a real gap for genuine disaster recovery (a
+      full-disk failure takes the backups with it). Revisit if/when Module 18
+      (Multi Server) makes a second server available to ship backups to.
 
 ## Module 14 — Logs
 - [ ] Laravel log viewer (per site, per channel)

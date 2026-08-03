@@ -128,6 +128,21 @@ model. Security-relevant constraints, restated:
   connector attached; `cloudflare_tunnels.status` reflects this honestly by
   never being set to `Active` by this module.
 
+## Backups (Module 13, as built)
+- Backup/restore reuses `WebsitePolicy::update()` (no new permission) - same
+  trust level as every other website-scoped destructive action in this app.
+- Restoring a backup is inherently destructive (it overwrites current files
+  and/or drops+reloads a database) - the UI requires an explicit confirmation
+  (`wire:confirm`) before calling the restore action, and every restore is
+  logged via `activity('backup')`.
+- **Known gap, disclosed not hidden**: every backup lives on the same disk as
+  the website it protects. A full-disk failure or a compromised server takes
+  the backups down with it - this is not a substitute for an off-server backup
+  destination, which isn't built yet (see docs/Roadmap.md/Features.md).
+- Git-snapshot backups use a dedicated bare repository per website, entirely
+  separate from any repository the website is deployed from (Module 5) - a
+  compromised or corrupted deploy repo can't take the backup history with it.
+
 ## SSL (Module 10, as built)
 - Every certificate's private key is stored **encrypted** on `ssl_certificates.private_key`
   (Laravel's `encrypted` cast), same principle as Module 9's Cloudflare API tokens.

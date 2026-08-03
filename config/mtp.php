@@ -99,4 +99,21 @@ return [
 
     'openssl_config_path' => env('MTP_OPENSSL_CONFIG_PATH'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Backups (Module 13)
+    |--------------------------------------------------------------------------
+    |
+    | Zip archives (file backups) and bare git "shadow" repositories (git
+    | snapshot backups) both live under storage/, never inside a website's own
+    | document root - a backup that lived alongside the thing it backs up
+    | would be lost in the same disk failure/`rm -rf` it's meant to protect
+    | against.
+    |
+    */
+
+    'website_backups_path' => env('MTP_WEBSITE_BACKUPS_PATH', storage_path('app/website-backups')),
+
+    'git_backups_path' => env('MTP_GIT_BACKUPS_PATH', storage_path('app/git-backups')),
+
 ];
