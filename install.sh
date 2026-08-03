@@ -257,6 +257,20 @@ log "Setting file permissions"
 chown -R "${MTP_SYSTEM_USER}:${MTP_SYSTEM_USER}" "${MTP_APP_DIR}"
 chmod -R 775 "${MTP_APP_DIR}/storage" "${MTP_APP_DIR}/bootstrap/cache"
 
+# If MTP_APP_DIR lives under a regular user's home directory (the documented
+# quick-start clones straight into $HOME), every ancestor directory needs an
+# execute ("traverse") bit for "other" - Ubuntu creates home directories as
+# 750 by default, which silently blocks www-data from ever reaching
+# public/index.php even though the app directory itself is chowned to it.
+# nginx then gets a bare "File not found." from PHP-FPM that looks exactly
+# like a routing bug, not a permissions one. o+x alone (no o+r) only allows
+# traversal into a known path - it does not expose directory listings.
+ancestor="$(dirname "${MTP_APP_DIR}")"
+while [[ "${ancestor}" != "/" ]]; do
+    chmod o+x "${ancestor}" 2>/dev/null || true
+    ancestor="$(dirname "${ancestor}")"
+done
+
 # ---------------------------------------------------------------------------
 log "Writing the nginx vhost for the panel itself"
 # ---------------------------------------------------------------------------

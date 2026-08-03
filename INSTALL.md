@@ -126,6 +126,19 @@ starts on boot — nothing here needs a manual restart after a reboot.
   explicit `ALTER USER ... IDENTIFIED BY ...` after `CREATE USER` so the
   password is force-synced to `.env` on every run. `git pull` to get the fix,
   then just re-run `sudo ./install.sh` — no manual SQL needed, it self-heals.
+- **`/admin` returns a bare 404 with body `File not found.`** (not Laravel's
+  own 404 page) — this is PHP-FPM itself failing to open `public/index.php`,
+  not a routing problem. It happens when the app was cloned into a regular
+  user's home directory (the documented quick-start does exactly this):
+  Ubuntu creates home directories as `750` by default, so `www-data` (which
+  runs PHP-FPM) has no execute/traverse permission on `/home/<user>` and can
+  never reach the app directory underneath it, even though the app directory
+  itself is correctly `chown`'d to `www-data`. Confirm with
+  `namei -l /path/to/mtp-deploy/public/index.php` — look for a `drwxr-x---`
+  entry owned by your own user partway down the path. Fix: `chmod o+x
+  /home/<user>` (traverse-only, doesn't expose directory listings). Newer
+  `install.sh` does this automatically for every ancestor directory of the
+  app path; re-run it after `git pull` if you hit this on an older checkout.
 
 ## Manual step-by-step
 
