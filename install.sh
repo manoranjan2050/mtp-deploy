@@ -22,6 +22,19 @@
 
 set -euo pipefail
 
+# A `generator | head -c N` pipeline is not safe under `set -o pipefail`: once
+# `head` has read its N bytes it closes the pipe, the still-writing generator
+# gets SIGPIPE, and the pipeline's (nonzero, SIGPIPE) exit status - captured
+# by the surrounding `$(...)` - trips `set -e` and silently kills the whole
+# script right there, with no error message. Reading a bounded amount of
+# input first, then truncating with bash's own substring expansion (no pipe,
+# no subprocess), avoids the problem entirely.
+random_string() {
+    local raw
+    raw="$(head -c 200 /dev/urandom | tr -dc 'A-Za-z0-9')"
+    echo "${raw:0:24}"
+}
+
 # ---------------------------------------------------------------------------
 # Configuration (override via environment variables before running, e.g.
 #   MTP_DOMAIN=deploy.example.com sudo -E ./install.sh
@@ -30,7 +43,7 @@ MTP_DOMAIN="${MTP_DOMAIN:-_}"                      # nginx server_name; "_" = ca
 MTP_APP_DIR="${MTP_APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 MTP_DB_NAME="${MTP_DB_NAME:-mtpdeploy}"
 MTP_DB_USER="${MTP_DB_USER:-mtpdeploy}"
-MTP_DB_PASSWORD="${MTP_DB_PASSWORD:-$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)}"
+MTP_DB_PASSWORD="${MTP_DB_PASSWORD:-$(random_string)}"
 MTP_PHP_VERSION="${MTP_PHP_VERSION:-8.4}"
 MTP_INSTALL_PHPMYADMIN="${MTP_INSTALL_PHPMYADMIN:-yes}"
 MTP_SYSTEM_USER="${MTP_SYSTEM_USER:-www-data}"
@@ -131,7 +144,7 @@ fi
 if [[ "${MTP_INSTALL_PHPMYADMIN}" == "yes" ]]; then
     log "Installing phpMyAdmin (accessible at /phpmyadmin behind the panel's nginx vhost)"
     if [[ ! -d /usr/share/phpmyadmin ]]; then
-        PMA_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)"
+        PMA_PASSWORD="$(random_string)"
         debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"
         debconf-set-selections <<< "phpmyadmin phpmyadmin/app-password-confirm password ${PMA_PASSWORD}"
         debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password"
