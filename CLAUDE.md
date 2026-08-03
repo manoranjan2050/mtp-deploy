@@ -368,6 +368,22 @@ tested for real, while `SystemCrontabServiceTest` only asserts the honest
 failure path here - same split as `NginxConfigGeneratorService`/
 `WebsiteProvisioningService` in Module 3.
 
+## Queue Manager (Module 12): status honesty, and reusing the Action-returns-a-result pattern
+
+`QueueWorker::status` has four states, not three: running/stopped/failed/**unknown**.
+`unknown` is what gets set whenever a `supervisorctl` call itself couldn't be
+reached (this Windows dev box has no such binary) - it is never silently
+treated as "stopped" or "running." Don't collapse this back to three states;
+the distinction between "confirmed stopped" and "couldn't confirm" matters.
+
+`CreateQueueWorkerAction::handle()` returns `array{worker: QueueWorker, result:
+SystemCommandResult}`, following the exact same shape as Module 3's
+`CreateWebsiteAction` (`array{website: Website, provisioning: SystemCommandResult}`) -
+whenever an Action both persists a DB row and attempts a real system-level
+side effect that can fail independently of the DB write succeeding, return
+both, and let the caller (a Filament page) decide how to surface a partial
+failure rather than the Action silently swallowing or throwing on it.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

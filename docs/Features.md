@@ -198,11 +198,19 @@ module currently in progress.
       principle as Module 2's `SystemMetricsService`
 
 ## Module 12 — Queue Manager
-- [ ] Supervisor program generation per website/queue
-- [ ] Restart worker group
-- [ ] Failed jobs list
-- [ ] Retry failed job
-- [ ] Live worker monitor
+- [x] Supervisor program generation per website/queue (real config file,
+      written and removed for real - see `SupervisorConfigGeneratorService`)
+- [x] Start/stop/restart worker group - real `supervisorctl` calls,
+      **honestly unavailable on this Windows dev box** (no `supervisorctl`
+      binary), same principle as Module 11's crontab sync
+- [ ] Failed jobs list / retry failed job - **not built**; this dev
+      environment has no real, running queue worker to generate failed jobs
+      against (the `failed_jobs` table exists via Laravel's own migration,
+      but no UI reads it yet). Revisit once a real worker can be exercised.
+- [ ] Live worker monitor - **not built**; status is only refreshed on
+      create/start/stop/restart, not polled continuously. A real-time view
+      would need the same live-metrics widget pattern as Module 2's
+      Dashboard.
 
 ## Module 13 — Backups
 - [x] Website file backup (real zip archive of the document root)

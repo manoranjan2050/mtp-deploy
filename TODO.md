@@ -869,6 +869,29 @@ Also built at the user's explicit request, outside the numbered module list:
       now" and confirmed exit code 0 recorded, no console errors
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
 
+## Done — Module 12: Queue Manager
+
+- [x] `queue_workers` schema (`App\Enums\QueueWorkerStatus` with an honest
+      `Unknown` state, not collapsed into running/stopped)
+- [x] `SupervisorConfigGeneratorService` (pure, fully testable) generates a
+      real `[program:...]` block; `SupervisorProcessService` writes/removes
+      the real config file and calls real `supervisorctl reread`/`update`/
+      `start`/`stop`/`restart` - **honestly unavailable on this Windows dev
+      box** (no `supervisorctl` binary), same principle as Module 11
+- [x] Create/Start/Stop/Restart/Delete Actions, each logging
+      `activity('queue')`; `CreateQueueWorkerAction` returns
+      `array{worker, result}`, same shape as Module 3's `CreateWebsiteAction`
+- [x] Reuses `WebsitePolicy::update()` - no new permission, same reasoning as
+      Cloudflare/SSL/Backups (scoped to one website's own queue)
+- [x] `ManageQueueWorkers` Filament page (per-website, like Cloudflare/SSL/Backups)
+- [x] `php artisan test` green (216 passed, 1 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: created a real worker, config file
+      written, status honestly shown as "Unknown" (no Supervisor here), no
+      console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
+- [ ] Failed jobs list/retry, live worker monitor **not built** - disclosed
+      gaps, see docs/Features.md
+
 ## Up Next
-- [ ] Module 12 — Queue Manager (see docs/Roadmap.md)
+- [ ] Module 14 — Logs (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

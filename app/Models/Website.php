@@ -125,6 +125,11 @@ class Website extends Model
         return $this->hasMany(Database::class);
     }
 
+    public function queueWorkers(): HasMany
+    {
+        return $this->hasMany(QueueWorker::class);
+    }
+
     public function latestSuccessfulDeployment(): ?Deployment
     {
         return $this->deployments()->where('status', 'success')->first();

@@ -401,9 +401,24 @@ New permission: `manage cron jobs` (admin/super-admin only, see
 on a schedule with no confirmation step at run time, the same trust level as
 Module 8's Terminal, not delegated to the `developer` role.
 
-### `queue_workers` (Module 12)
-id, website_id, connection, queue, processes, status (enum: running/stopped/failed),
-supervisor_program_name, timestamps.
+## Module 12 — Queue Manager ✅ (as built)
+
+### `queue_workers`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| website_id | fk websites, cascadeOnDelete | |
+| created_by | fk users, nullable, nullOnDelete | |
+| connection | string default `database` | e.g. database/redis/sqs |
+| queue | string default `default` | |
+| processes | unsigned smallint default 1 | maps to Supervisor's `numprocs` |
+| status | string, cast to `App\Enums\QueueWorkerStatus` default `stopped` | running/stopped/failed/unknown - `unknown` specifically means "Supervisor couldn't be reached to confirm," never fabricated as running |
+| supervisor_program_name | string | auto-generated (`mtp-website-{id}-{random}`), the literal `[program:...]` name in the real Supervisor config file |
+| timestamps | | |
+
+No new permission - queue worker management reuses `WebsitePolicy::update()`,
+same reasoning as Cloudflare/SSL/Backups (a queue worker is scoped to one
+website's own queue, not the whole server).
 
 ## Module 13 — Backups ✅ (as built)
 

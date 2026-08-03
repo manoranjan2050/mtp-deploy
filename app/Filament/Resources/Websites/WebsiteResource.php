@@ -10,6 +10,7 @@ use App\Filament\Resources\Websites\Pages\ListWebsites;
 use App\Filament\Resources\Websites\Pages\ManageBackups;
 use App\Filament\Resources\Websites\Pages\ManageCloudflare;
 use App\Filament\Resources\Websites\Pages\ManageFiles;
+use App\Filament\Resources\Websites\Pages\ManageQueueWorkers;
 use App\Filament\Resources\Websites\Pages\ManageSsl;
 use App\Filament\Resources\Websites\Schemas\WebsiteForm;
 use App\Filament\Resources\Websites\Tables\WebsitesTable;
@@ -75,6 +76,7 @@ class WebsiteResource extends Resource
             'cloudflare' => ManageCloudflare::route('/{record}/cloudflare'),
             'ssl' => ManageSsl::route('/{record}/ssl'),
             'backups' => ManageBackups::route('/{record}/backups'),
+            'queue-workers' => ManageQueueWorkers::route('/{record}/queue-workers'),
         ];
     }
 

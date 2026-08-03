@@ -133,4 +133,17 @@ return [
 
     'github_branch' => env('MTP_GITHUB_BRANCH', 'main'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Manager (Module 12)
+    |--------------------------------------------------------------------------
+    |
+    | Where per-website Supervisor program config files are written. On a
+    | real Ubuntu/Debian box this matches Supervisor's own conf.d layout.
+    | Overridable so tests never write to a protected system path.
+    |
+    */
+
+    'supervisor_config_path' => env('MTP_SUPERVISOR_CONFIG_PATH', '/etc/supervisor/conf.d'),
+
 ];

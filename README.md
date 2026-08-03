@@ -31,9 +31,9 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 9 | Cloudflare — DNS, tunnels, SSL mode, cache purge | ✅ |
 | 10 | SSL — Let's Encrypt (ACME v2), custom certs, auto-renewal, wildcard | ✅ |
 | 11 | Cron Manager — real crontab sync, run-now, cron expression validation | ✅ |
+| 12 | Queue Manager — Supervisor program generation, start/stop/restart | ✅ |
 | 13 | Backups — files + database + git snapshots, scheduled, restore | ✅ |
-| 12 | Queue Manager (Supervisor) | ⬜ next |
-| 14 | Logs (Laravel/PHP/nginx/MariaDB) | ⬜ |
+| 14 | Logs (Laravel/PHP/nginx/MariaDB) | ⬜ next |
 | 15 | Monitoring & alerts | ⬜ |
 | 16 | Notifications (Telegram/Email/Discord/Slack) | ⬜ |
 | 17 | API (REST + tokens + webhooks) | ⬜ |

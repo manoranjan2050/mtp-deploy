@@ -183,6 +183,11 @@ class WebsitesTable
                     ->icon(Heroicon::OutlinedArchiveBox)
                     ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
                     ->url(fn (Website $record): string => WebsiteResource::getUrl('backups', ['record' => $record])),
+                Action::make('queueWorkers')
+                    ->label('Queue')
+                    ->icon(Heroicon::OutlinedQueueList)
+                    ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
+                    ->url(fn (Website $record): string => WebsiteResource::getUrl('queue-workers', ['record' => $record])),
                 EditAction::make(),
             ])
             ->headerActions([
