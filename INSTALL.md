@@ -126,6 +126,21 @@ starts on boot — nothing here needs a manual restart after a reboot.
   explicit `ALTER USER ... IDENTIFIED BY ...` after `CREATE USER` so the
   password is force-synced to `.env` on every run. `git pull` to get the fix,
   then just re-run `sudo ./install.sh` — no manual SQL needed, it self-heals.
+- **Adding a website in the panel saves the database row but nothing shows up
+  on disk** (no nginx vhost, no document root, and clicking Republish keeps
+  giving the same silent-feeling failure) — Module 3 writes each website's
+  nginx vhost under `/etc/nginx/sites-{available,enabled}` and creates its
+  document root under `/var/www` directly, and reloads nginx/restarts PHP-FPM
+  via `sudo -n` per `docs/Architecture.md`'s privileged-command model. Older
+  `install.sh` never actually set either of those up: the two directories
+  were root-owned with no write access for `www-data`, and there was no
+  `/etc/sudoers.d/mtp-deploy` entry, so every one of those operations failed
+  silently. `git pull` to get the fix, then re-run `sudo ./install.sh` — it
+  grants `www-data` group-write on `/etc/nginx/sites-available`,
+  `/etc/nginx/sites-enabled`, and `/var/www`, and installs a narrow
+  `NOPASSWD` sudoers entry scoped to exactly `nginx -t`, `systemctl reload
+  nginx`, and `systemctl restart php<version>-fpm` — never a blanket `sudo
+  ALL`. Re-run the website's Republish action afterward to provision it.
 - **`/admin` returns a bare 404 with body `File not found.`** (not Laravel's
   own 404 page) — this is PHP-FPM itself failing to open `public/index.php`,
   not a routing problem. It happens when the app was cloned into a regular

@@ -27,9 +27,9 @@ enum WhitelistedOperation: string
     public function commandFor(array $arguments = []): array
     {
         return match ($this) {
-            self::ReloadNginx => ['systemctl', 'reload', 'nginx'],
-            self::TestNginxConfig => ['nginx', '-t'],
-            self::RestartPhpFpm => ['systemctl', 'restart', 'php'.$this->requireArgument($arguments, 'php_version').'-fpm'],
+            self::ReloadNginx => ['sudo', '-n', 'systemctl', 'reload', 'nginx'],
+            self::TestNginxConfig => ['sudo', '-n', 'nginx', '-t'],
+            self::RestartPhpFpm => ['sudo', '-n', 'systemctl', 'restart', 'php'.$this->requireArgument($arguments, 'php_version').'-fpm'],
         };
     }
 

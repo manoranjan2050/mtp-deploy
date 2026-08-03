@@ -334,6 +334,39 @@ rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 
 # ---------------------------------------------------------------------------
+log "Granting the app user write access to nginx vhost dirs and the sites root"
+# ---------------------------------------------------------------------------
+# Module 3 (Website Manager) writes/removes each website's nginx vhost under
+# /etc/nginx/sites-{available,enabled} and creates its document root under
+# MTP_SITES_ROOT directly from PHP (WebsiteProvisioningService) - see
+# docs/Architecture.md. Both are root-owned (0755) by default, so without
+# this a website's database row gets created but nothing ever lands on disk,
+# with the only symptom being a "provisioning failed" notification.
+MTP_SITES_ROOT="${MTP_SITES_ROOT:-/var/www}"
+mkdir -p "${MTP_SITES_ROOT}"
+chgrp "${MTP_SYSTEM_USER}" /etc/nginx/sites-available /etc/nginx/sites-enabled "${MTP_SITES_ROOT}"
+chmod g+w /etc/nginx/sites-available /etc/nginx/sites-enabled "${MTP_SITES_ROOT}"
+
+# ---------------------------------------------------------------------------
+log "Granting the app user passwordless sudo for its whitelisted system commands"
+# ---------------------------------------------------------------------------
+# app/Enums/WhitelistedOperation.php is the *only* place these three commands
+# are ever built, always via `sudo -n` (never a blanket `sudo ALL`) - see
+# docs/Architecture.md's "Privileged System Operations" section. Validated
+# with `visudo -c` before being installed so a typo here can never corrupt
+# sudo's config or lock out sudo entirely.
+SUDOERS_FILE="/etc/sudoers.d/mtp-deploy"
+cat > "${SUDOERS_FILE}.tmp" <<SUDOERS
+${MTP_SYSTEM_USER} ALL=(root) NOPASSWD: /usr/sbin/nginx -t
+${MTP_SYSTEM_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl reload nginx
+${MTP_SYSTEM_USER} ALL=(root) NOPASSWD: /usr/bin/systemctl restart php${MTP_PHP_VERSION}-fpm
+SUDOERS
+if visudo -c -f "${SUDOERS_FILE}.tmp"; then
+    install -m 0440 "${SUDOERS_FILE}.tmp" "${SUDOERS_FILE}"
+fi
+rm -f "${SUDOERS_FILE}.tmp"
+
+# ---------------------------------------------------------------------------
 log "Configuring the Supervisor queue worker"
 # ---------------------------------------------------------------------------
 cat > /etc/supervisor/conf.d/mtp-deploy-worker.conf <<SUPERVISOR
