@@ -51,6 +51,8 @@ class WebsiteProvisioningService
 
     public function republish(Website $website): SystemCommandResult
     {
+        File::ensureDirectoryExists($website->publicPath());
+
         $this->writeVirtualHost($website, $this->configGenerator->generate($website));
 
         return $this->applyNginxChanges();

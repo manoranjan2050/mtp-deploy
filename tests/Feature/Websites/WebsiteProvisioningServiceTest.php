@@ -95,6 +95,24 @@ class WebsiteProvisioningServiceTest extends TestCase
         $this->assertStringContainsString('return 503', $config);
     }
 
+    public function test_republish_recreates_a_missing_document_root(): void
+    {
+        // Covers a real gap found in production: an earlier `provision()`
+        // call can fail to create the document root (e.g. a permissions
+        // issue that gets fixed later), leaving a website record with no
+        // directory on disk. Since there's no separate "retry provisioning"
+        // action - just the regular Save button, which calls republish() -
+        // republish() must also be able to recreate it, not just rewrite
+        // the vhost.
+        $website = $this->makeWebsite();
+
+        $this->assertDirectoryDoesNotExist($website->publicPath());
+
+        app(WebsiteProvisioningService::class)->republish($website);
+
+        $this->assertDirectoryExists($website->publicPath());
+    }
+
     private function makeWebsite(): Website
     {
         $server = Server::query()->create(['name' => 'Test Server', 'is_local' => true]);
