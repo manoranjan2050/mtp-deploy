@@ -102,6 +102,7 @@ All architecture and planning docs live in [`docs/`](docs):
 | [Database.md](docs/Database.md) | Schema, per module |
 | [API.md](docs/API.md) | REST API surface, auth, webhooks |
 | [UserFlow.md](docs/UserFlow.md) | End-to-end user journeys |
+| [AddingWebsites.md](docs/AddingWebsites.md) | Step-by-step: publishing a new domain/subdomain, Cloudflare Tunnel routing, uploading files |
 | [Features.md](docs/Features.md) | Full feature checklist per module |
 | [Security.md](docs/Security.md) | AuthN/AuthZ, audit logging, secrets, privileged execution |
 | [FolderStructure.md](docs/FolderStructure.md) | Concrete `app/` layout |
