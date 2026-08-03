@@ -827,6 +827,25 @@ repository per website (independent of any deployment repo).
 - [ ] Download-from-browser and off-server backup destinations **not built** -
       disclosed gaps, see docs/Features.md
 
+## Done — extras: About page, update checker, README rewrite
+
+Also built at the user's explicit request, outside the numbered module list:
+
+- [x] `App\Filament\Pages\About` - project info, tech stack, installed commit,
+      developer section (real GitHub username/repo; full name/bio left as an
+      explicit placeholder for the user to fill in - not fabricated)
+- [x] `App\Services\Updates\UpdateCheckerService` - compares this
+      installation's real local git HEAD (`git rev-parse HEAD`) against the
+      latest commit on GitHub's public REST API for the repo's default
+      branch, cached 1 hour to stay well under the unauthenticated rate limit
+- [x] `UpdateAvailableWidget` - a dashboard banner, shown only when an update
+      is actually available
+- [x] Confirmed Module 1's `BootstrapRegister` already fully covers "first-time
+      setup asks for the first admin username/password" - no rework needed,
+      just verified and documented for the user
+- [x] `README.md` rewritten with a per-module status table and highlights
+- [x] `php artisan test` green (191 passed, 1 skipped), `vendor/bin/pint` clean
+
 ## Up Next
 - [ ] Module 11 — Cron Manager (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

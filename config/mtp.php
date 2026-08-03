@@ -116,4 +116,21 @@ return [
 
     'git_backups_path' => env('MTP_GIT_BACKUPS_PATH', storage_path('app/git-backups')),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Project info / update checker
+    |--------------------------------------------------------------------------
+    |
+    | Used by the About page and the update-checker: compares this
+    | installation's checked-out git commit against the latest commit on the
+    | public repo's default branch via GitHub's public REST API (no token
+    | needed for a public repo, so this works out of the box - just rate
+    | limited to 60 unauthenticated requests/hour per IP, hence the cache).
+    |
+    */
+
+    'github_repo' => env('MTP_GITHUB_REPO', 'manoranjan2050/mtp-deploy'),
+
+    'github_branch' => env('MTP_GITHUB_BRANCH', 'main'),
+
 ];
