@@ -918,6 +918,43 @@ Also built at the user's explicit request, outside the numbered module list:
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`,
       `docs/Security.md` updated
 
+## Done — Module 15: Monitoring & Alerts
+
+- [x] Extended Module 2's existing `MetricsTrendChart`/`system_metric_snapshots`
+      instead of duplicating them - added a Disk % dataset to the chart, and
+      hung alert evaluation + retention pruning off the existing
+      `app:capture-system-metrics` (every minute)
+- [x] `system_metric_snapshots` now pruned beyond
+      `config('mtp.metrics_retention_days')` (default 7 days) - it had no
+      retention policy before this module and would otherwise grow forever
+- [x] `AlertEvaluatorService` (pure, fully testable) - per-server
+      CPU/memory/disk % thresholds (`servers.cpu_alert_threshold` etc., null
+      = disabled); creates an `Alert` row when breached, never duplicates
+      while one is already open, auto-resolves it once the metric recovers
+- [x] `ProcessListService` - real `ps -eo pid,ppid,pcpu,pmem,etime,comm
+      --sort=-pcpu` via `Symfony\Process` array args, top 30 by CPU -
+      honestly unsupported on this Windows dev box (no `ps` binary), same
+      principle as `SystemMetricsService`
+- [x] `Monitoring` Filament page (system-wide) - active alerts with a
+      "Resolve" action, a threshold-configuration form, a bandwidth table
+      (real rx/tx rate derived from consecutive snapshot deltas), and the
+      process list
+- [x] Viewing is open to any authenticated user (same trust level as the
+      Dashboard's own stats widgets); setting thresholds/resolving alerts
+      requires a new `manage monitoring alerts` permission
+      (`ServerPolicy::manageMonitoringAlerts()`, admin/super-admin only)
+- [x] `php artisan test` green (249 passed, 2 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: saved real CPU/memory/disk thresholds
+      (persisted to the `servers` row), created a real `Alert` row and
+      confirmed it rendered with the correct metric/value/threshold, resolved
+      it via the "Resolve" button and confirmed it disappeared from the
+      active list, no console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`,
+      `docs/Security.md` updated
+- [ ] Temperature sensors, outbound alert notifications (email/Telegram/etc.)
+      **not built** - disclosed gaps, see docs/Features.md (notifications are
+      explicitly Module 16's job)
+
 ## Up Next
-- [ ] Module 15 — Monitoring & alerts (see docs/Roadmap.md)
+- [ ] Module 16 — Notifications (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

@@ -224,6 +224,26 @@ model. Security-relevant constraints, restated:
   gated by a new `view application logs` permission, admin/super-admin only -
   the same trust level as Terminal/Cron, not delegated to `developer`/`viewer`.
 
+## Monitoring & Alerts (Module 15, as built)
+- Viewing live/historical metrics, active alerts, and the process list is open
+  to any authenticated user, no new permission - the same trust level as
+  Module 2's Dashboard system-stats widgets, which already surface identical
+  server-wide CPU/RAM/disk information. This is read-only operational info,
+  not a mutation.
+- Setting alert thresholds and manually resolving an alert require a new
+  `manage monitoring alerts` permission (admin/super-admin only, via
+  `ServerPolicy::manageMonitoringAlerts()`) - a system-wide config change, the
+  same trust level as Terminal/Cron/Tunnels, not delegated to
+  `developer`/`viewer`.
+- `ProcessListService` invokes `ps` as a fixed argument array via
+  `Symfony\Process` (`['ps', '-eo', 'pid,ppid,pcpu,pmem,etime,comm',
+  '--sort=-pcpu', '--no-headers']`) - never a shell string built from
+  request input, since there is no user-controlled input feeding this call
+  at all.
+- Alert thresholds are validated as integers 1-100 server-side
+  (`Validate` attributes on the Livewire page) before being persisted -
+  never trusted as-is from the request.
+
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must
   run behind HTTPS (the panel's own SSL, independent of the SSL the panel provisions

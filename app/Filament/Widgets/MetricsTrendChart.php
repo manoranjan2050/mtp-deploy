@@ -9,7 +9,7 @@ use Filament\Widgets\ChartWidget;
 
 class MetricsTrendChart extends ChartWidget
 {
-    protected ?string $heading = 'CPU & Memory - last 60 snapshots';
+    protected ?string $heading = 'CPU, Memory & Disk - last 60 snapshots';
 
     protected static ?int $sort = 3;
 
@@ -47,6 +47,16 @@ class MetricsTrendChart extends ChartWidget
                             : null
                     )->all(),
                     'borderColor' => '#3b82f6',
+                    'fill' => false,
+                ],
+                [
+                    'label' => 'Disk %',
+                    'data' => $snapshots->map(
+                        fn (SystemMetricSnapshot $s): ?float => $s->disk_total_bytes
+                            ? round(($s->disk_used_bytes / $s->disk_total_bytes) * 100, 1)
+                            : null
+                    )->all(),
+                    'borderColor' => '#10b981',
                     'fill' => false,
                 ],
             ],

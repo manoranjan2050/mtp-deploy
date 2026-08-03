@@ -72,6 +72,7 @@ class DashboardWidgetsTest extends TestCase
 
         $this->assertSame([42.5], $data['datasets'][0]['data']);
         $this->assertSame([50.0], $data['datasets'][1]['data']);
+        $this->assertSame([50.0], $data['datasets'][2]['data']);
     }
 
     public function test_latest_deployments_widget_renders_empty_state(): void

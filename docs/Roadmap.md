@@ -22,7 +22,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 12 | Queue Manager (Supervisor) | ✅ | 3, 6 |
 | 13 | Backups (site + database, scheduled) | ✅ | 3, 4 |
 | 14 | Logs (Laravel/PHP/nginx/MariaDB, search) | ✅ | 3 |
-| 15 | Monitoring (CPU/RAM/disk/temp/bandwidth/processes/alerts) | ⬜ | 2 |
+| 15 | Monitoring (CPU/RAM/disk/temp/bandwidth/processes/alerts) | ✅ | 2 |
 | 16 | Notifications (Telegram/Email/Discord/Slack) | ⬜ | 1 |
 | 17 | API (REST + tokens + webhooks) | ⬜ | 1 |
 | 18 | Multi Server (remote server connections, groups) | ⬜ | 2, 8 |
@@ -30,8 +30,8 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 14 — Logs.** Modules 1–13 are all complete - 216 passing tests, Pint
-clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
+**Module 16 — Notifications.** Modules 1–15 are all complete - 249 passing
+tests, Pint clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
 project keeps hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a

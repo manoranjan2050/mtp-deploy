@@ -471,6 +471,39 @@ The per-website `ManageLogs` page has no new permission - it reuses
 `WebsitePolicy::view()`, since reading a log is a read-only ability every
 role that can already see the website (including `viewer`) is trusted with.
 
+## Module 15 — Monitoring & Alerts ✅ (as built)
+
+No new metrics table - reuses Module 2's `system_metric_snapshots` (captured
+every minute by `app:capture-system-metrics`), now also pruned by the same
+command beyond `config('mtp.metrics_retention_days')` (default 7 days), since
+an unbounded once-a-minute snapshot table would otherwise grow forever.
+
+### `servers` additions
+`cpu_alert_threshold` / `memory_alert_threshold` / `disk_alert_threshold`
+(unsigned tinyint, nullable) - a percentage 1-100, or `null` to disable
+alerting for that metric entirely. Checked against the metric's usage percent
+every capture.
+
+### `alerts`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| server_id | fk servers, cascadeOnDelete | |
+| metric | string, cast to `App\Enums\AlertMetric` | cpu/memory/disk |
+| threshold_percent | unsigned tinyint | the threshold in effect when this alert triggered |
+| triggered_value_percent | float | the actual reading that breached it |
+| triggered_at | timestamp | |
+| resolved_at | timestamp nullable | null = still active; set automatically once the metric drops back under threshold on a later capture, or manually via the "Resolve" button |
+| timestamps | | |
+
+At most one *unresolved* alert exists per server/metric at a time -
+`AlertEvaluatorService` never creates a duplicate while one is already open,
+and auto-resolves it once the metric recovers. See docs/Security.md for the
+permission model.
+
+No new table for the process list - `ProcessListService` reads real `ps`
+output live, on demand; there is nothing to persist.
+
 ### `notification_channels` (Module 16)
 id, user_id, channel (enum: email/telegram/discord/slack), config (encrypted json),
 is_enabled, timestamps.

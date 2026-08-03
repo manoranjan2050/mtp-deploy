@@ -148,4 +148,18 @@ return [
 
     'supervisor_config_path' => env('MTP_SUPERVISOR_CONFIG_PATH', '/etc/supervisor/conf.d'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Monitoring (Module 15)
+    |--------------------------------------------------------------------------
+    |
+    | `system_metric_snapshots` grows one row every minute (see
+    | routes/console.php) - without pruning it would grow unbounded forever.
+    | Only rows older than this many days are deleted, keeping enough history
+    | for the trend charts while bounding table size.
+    |
+    */
+
+    'metrics_retention_days' => env('MTP_METRICS_RETENTION_DAYS', 7),
+
 ];

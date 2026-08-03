@@ -39,4 +39,17 @@ class ServerPolicy
     {
         return $user->can('manage cron jobs');
     }
+
+    /**
+     * Viewing live/historical metrics and the process list is open to any
+     * authenticated user, same as the Dashboard's own system-stats widgets -
+     * these are read-only operational info, not a mutation. Only setting
+     * alert thresholds and manually resolving an alert require this
+     * ability - a system-wide config change, the same trust level as
+     * Terminal/Cron/Tunnels, not delegated to `developer`/`viewer`.
+     */
+    public function manageMonitoringAlerts(User $user, Server $server): bool
+    {
+        return $user->can('manage monitoring alerts');
+    }
 }

@@ -37,6 +37,7 @@ class PermissionSeeder extends Seeder
         'manage cloudflare tunnels',
         'manage cron jobs',
         'view application logs',
+        'manage monitoring alerts',
     ];
 
     public function run(): void

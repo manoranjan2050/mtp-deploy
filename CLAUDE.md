@@ -408,6 +408,36 @@ compatible" error at parse time, not a runtime surprise. Named it
 `logContent()` instead. Worth checking `Page`'s own method list before naming
 a computed property/method on any Filament page subclass.
 
+## Monitoring & Alerts (Module 15): building on Module 2 instead of duplicating it
+
+Before writing any code, checked what Module 2 (Dashboard) already built -
+`SystemMetricSnapshot` (a row captured every minute), `MetricsTrendChart`
+(a 60-snapshot CPU/Memory line chart), and `app:capture-system-metrics`
+already existed. Module 15 extended these instead of introducing a parallel
+metrics table: added a third Disk % dataset to the existing chart, and hung
+alert evaluation + snapshot pruning off the existing scheduled command,
+rather than inventing a second command or a second snapshot table. Always
+check for a prior module's partial overlap before designing a new one's
+schema - the Roadmap module boundaries are a planning convenience, not a
+guarantee that no code exists yet.
+
+`system_metric_snapshots` had no pruning at all before this module - a
+once-a-minute insert with nothing ever deleting old rows is an unbounded
+table by construction. Any "capture on a schedule" feature needs a retention
+policy from day one, not as an afterthought once the table is already large;
+Module 13's backup retention count was the precedent followed here
+(`config('mtp.metrics_retention_days')`, pruned in the same command that
+does the capturing).
+
+Filament's `discoverWidgets()` scans `app/Filament/Widgets` and auto-attaches
+every class in it to the default `Filament\Pages\Dashboard` - a page-specific
+chart widget dropped in that directory would silently appear on the main
+Dashboard too, not just the page it was built for. Avoided the question
+entirely by not introducing a new ChartWidget class for the Monitoring page:
+the bandwidth table and process list are computed directly in the page's own
+Livewire class instead. Worth remembering before adding any new widget meant
+for a page other than the Dashboard.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

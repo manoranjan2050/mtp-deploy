@@ -255,11 +255,31 @@ module currently in progress.
       archive."
 
 ## Module 15 — Monitoring
-- [ ] CPU/RAM/Disk historical graphs
-- [ ] Temperature (where sensors are exposed)
-- [ ] Bandwidth usage
-- [ ] Process list (top-like)
-- [ ] Threshold-based alerts
+- [x] CPU/RAM/Disk historical graphs - extended Module 2's `MetricsTrendChart`
+      (Dashboard widget) with a third Disk % dataset, reusing the same
+      `system_metric_snapshots` captured every minute
+- [x] Bandwidth usage - a new `Monitoring` page computes real rx/tx
+      **rate** (bytes/sec) from the delta between consecutive snapshots'
+      cumulative counters, shown as a table of the last 20 intervals
+- [x] Process list (top-like) - `ProcessListService` runs real `ps -eo
+      pid,ppid,pcpu,pmem,etime,comm --sort=-pcpu`, top 30 by CPU -
+      **honestly unsupported on this Windows dev box** (no `ps` binary),
+      same "never fake server state" principle as `SystemMetricsService`
+- [x] Threshold-based alerts - per-server CPU/memory/disk % thresholds
+      (`servers.cpu_alert_threshold` etc., null = disabled); `app:capture-
+      system-metrics` evaluates them every minute via
+      `AlertEvaluatorService`, recording an `Alert` row when breached and
+      auto-resolving it once the metric recovers; visible/resolvable on the
+      `Monitoring` page
+- [ ] Temperature (where sensors are exposed) - **not built**; there is no
+      standard, cross-distro sensor path without `lm-sensors` installed and
+      configured per-hardware, which is out of scope for a generic
+      first pass. Revisit if a concrete target server's sensor layout is
+      known.
+- [ ] Outbound alert notifications (email/Telegram/etc.) - **not built
+      here on purpose**; alerts are recorded and visible in-app only for
+      now. Dispatching them through a real notification channel is
+      explicitly Module 16's job, not duplicated here.
 
 ## Module 16 — Notifications
 - [ ] Telegram channel

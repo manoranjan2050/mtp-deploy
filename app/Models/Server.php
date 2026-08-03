@@ -23,6 +23,9 @@ class Server extends Model
         'os',
         'php_versions',
         'created_by',
+        'cpu_alert_threshold',
+        'memory_alert_threshold',
+        'disk_alert_threshold',
     ];
 
     protected function casts(): array
@@ -53,6 +56,11 @@ class Server extends Model
     public function cronJobs(): HasMany
     {
         return $this->hasMany(CronJob::class);
+    }
+
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(Alert::class);
     }
 
     public function creator(): BelongsTo
