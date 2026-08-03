@@ -83,6 +83,20 @@ apt-get install -y \
 
 update-alternatives --set php "/usr/bin/php${MTP_PHP_VERSION}" 2>/dev/null || true
 
+# Debian/Ubuntu's php-fpm package ships a stock 2M upload_max_filesize / 8M
+# post_max_size, which is nowhere near enough for Module 7's File Manager to
+# be useful for real deployment zips (confirmed live: a routine ~65MB
+# Laravel deploy zip couldn't be uploaded through the browser at all,
+# forcing SFTP as the only option). Raised to something actually usable;
+# still bounded, not unlimited.
+FPM_PHP_INI="/etc/php/${MTP_PHP_VERSION}/fpm/php.ini"
+if [[ -f "${FPM_PHP_INI}" ]]; then
+    sed -i -E \
+        -e "s/^upload_max_filesize\s*=.*/upload_max_filesize = 200M/" \
+        -e "s/^post_max_size\s*=.*/post_max_size = 200M/" \
+        "${FPM_PHP_INI}"
+fi
+
 # The php-fpm package's own postinst usually enables it already, but that's
 # an implementation detail of the package, not something this script should
 # rely on silently - make it explicit so the panel actually survives a reboot.
@@ -289,6 +303,11 @@ server {
 
     server_name ${MTP_DOMAIN};
     root ${MTP_APP_DIR}/public;
+
+    # nginx's own stock default is 1M, which would reject a file manager
+    # upload before it ever reaches PHP's (separately raised, see above)
+    # upload_max_filesize - both layers have to agree.
+    client_max_body_size 200M;
 
     index index.php;
 

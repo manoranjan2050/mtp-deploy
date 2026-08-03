@@ -60,6 +60,10 @@ Other variables you can override (see the top of `install.sh` for the full list)
 - `cron` (installed and enabled explicitly, not assumed) plus a scheduler entry
   that runs every minute (this is what actually captures dashboard metrics,
   checks SSL renewals, etc. — see docs/Roadmap.md)
+- Raises PHP's stock `upload_max_filesize`/`post_max_size` (2M/8M by default)
+  and nginx's stock `client_max_body_size` (1M by default) to 200M each, so
+  Module 7's File Manager can actually handle a real deployment zip through
+  the browser instead of silently rejecting anything but tiny files.
 
 ### Does everything survive a reboot?
 
