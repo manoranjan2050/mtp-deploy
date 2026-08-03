@@ -106,6 +106,15 @@ starts on boot — nothing here needs a manual restart after a reboot.
 - **Scheduled tasks (metrics, SSL renewal) never run** — confirm the cron entry
   exists: `cat /etc/cron.d/mtp-deploy`, and that cron itself is running:
   `systemctl status cron`.
+- **`migrate` fails with `Access denied for user 'root'@'localhost' ... Database: laravel`**
+  — this means Laravel is reading its *fallback* config defaults
+  (`root`/`laravel`/empty password) instead of your real `.env` values, which
+  happens for one of two reasons: (1) a stale `bootstrap/cache/config.php`
+  from an earlier attempt exists — run `php artisan config:clear` to remove
+  it, or (2) `.env`'s `DB_HOST`/`DB_PORT`/`DB_DATABASE`/`DB_USERNAME`/
+  `DB_PASSWORD` lines are still commented out (`# DB_HOST=...`) — Laravel's
+  stock `.env.example` ships them commented by default; uncomment and fill
+  them in, then `php artisan config:clear` again before re-running `migrate`.
 
 ## Manual step-by-step
 
@@ -132,15 +141,20 @@ sudo mv composer.phar /usr/local/bin/composer
 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo bash -
 sudo apt-get install -y nodejs
 
-# 5. MariaDB, Redis, nginx, Supervisor
-sudo apt-get install -y mariadb-server mariadb-client redis-server nginx supervisor
-sudo systemctl enable --now mariadb redis-server nginx supervisor
+# 5. MariaDB, Redis, nginx, Supervisor, cron
+sudo apt-get install -y mariadb-server mariadb-client redis-server nginx supervisor cron
+sudo systemctl enable --now mariadb redis-server nginx supervisor cron
 
-# 6. Database + user
+# 6. App database + user, plus a *separate* admin-level MySQL user for
+#    Module 4's Database Manager (which creates/drops other databases and
+#    users - it deliberately never reuses the app's own scoped DB user, or
+#    real MySQL root, for that).
 sudo mysql -u root -e "
   CREATE DATABASE mtpdeploy CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE USER 'mtpdeploy'@'127.0.0.1' IDENTIFIED BY 'CHANGE-ME';
   GRANT ALL PRIVILEGES ON mtpdeploy.* TO 'mtpdeploy'@'127.0.0.1';
+  CREATE USER 'mtpdeploy_admin'@'127.0.0.1' IDENTIFIED BY 'CHANGE-ME-TOO';
+  GRANT ALL PRIVILEGES ON *.* TO 'mtpdeploy_admin'@'127.0.0.1' WITH GRANT OPTION;
   FLUSH PRIVILEGES;
 "
 
@@ -150,8 +164,12 @@ cd mtp-deploy
 composer install --no-dev --optimize-autoloader
 cp .env.example .env
 php artisan key:generate
-# edit .env: DB_DATABASE, DB_USERNAME, DB_PASSWORD, APP_URL, APP_ENV=production, APP_DEBUG=false
+# edit .env - these are commented out by default, uncomment and fill in:
+#   DB_HOST=127.0.0.1, DB_PORT=3306, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+#   DB_ADMIN_HOST=127.0.0.1, DB_ADMIN_PORT=3306, DB_ADMIN_USERNAME=mtpdeploy_admin, DB_ADMIN_PASSWORD
+#   APP_URL, APP_ENV=production, APP_DEBUG=false
 npm install && npm run build
+php artisan config:clear   # in case a stale bootstrap/cache/config.php exists from an earlier attempt
 php artisan migrate --force --seed
 php artisan storage:link
 sudo chown -R www-data:www-data .

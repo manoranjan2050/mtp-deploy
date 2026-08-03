@@ -44,6 +44,8 @@ MTP_APP_DIR="${MTP_APP_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 MTP_DB_NAME="${MTP_DB_NAME:-mtpdeploy}"
 MTP_DB_USER="${MTP_DB_USER:-mtpdeploy}"
 MTP_DB_PASSWORD="${MTP_DB_PASSWORD:-$(random_string)}"
+MTP_DB_ADMIN_USER="${MTP_DB_ADMIN_USER:-mtpdeploy_admin}"
+MTP_DB_ADMIN_PASSWORD="${MTP_DB_ADMIN_PASSWORD:-$(random_string)}"
 MTP_PHP_VERSION="${MTP_PHP_VERSION:-8.4}"
 MTP_INSTALL_PHPMYADMIN="${MTP_INSTALL_PHPMYADMIN:-yes}"
 MTP_SYSTEM_USER="${MTP_SYSTEM_USER:-www-data}"
@@ -112,12 +114,29 @@ if ! command -v mariadb >/dev/null 2>&1 && ! command -v mysql >/dev/null 2>&1; t
 fi
 
 log "Creating the application database and user (if they don't already exist)"
+# `mysql -u root` here relies on MariaDB's default unix_socket auth for the
+# real root account, which only works for a local shell running as the root
+# OS user (exactly what this script is, under sudo) - it does NOT work over
+# TCP with a password, which is why the app itself never connects as root.
 mysql -u root <<SQL
 CREATE DATABASE IF NOT EXISTS \`${MTP_DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${MTP_DB_USER}'@'127.0.0.1' IDENTIFIED BY '${MTP_DB_PASSWORD}';
 CREATE USER IF NOT EXISTS '${MTP_DB_USER}'@'localhost' IDENTIFIED BY '${MTP_DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON \`${MTP_DB_NAME}\`.* TO '${MTP_DB_USER}'@'127.0.0.1';
 GRANT ALL PRIVILEGES ON \`${MTP_DB_NAME}\`.* TO '${MTP_DB_USER}'@'localhost';
+SQL
+
+log "Creating a dedicated admin MySQL user for Module 4's Database Manager"
+# Module 4 provisions/drops *other* databases and users for managed websites -
+# that genuinely needs privileged MySQL access, deliberately separate from
+# the app's own DB_* connection above (which is scoped to only its own
+# database). A dedicated, rotatable admin user - not the real MySQL root
+# account - keeps that privileged credential out of the app's .env.
+mysql -u root <<SQL
+CREATE USER IF NOT EXISTS '${MTP_DB_ADMIN_USER}'@'127.0.0.1' IDENTIFIED BY '${MTP_DB_ADMIN_PASSWORD}';
+CREATE USER IF NOT EXISTS '${MTP_DB_ADMIN_USER}'@'localhost' IDENTIFIED BY '${MTP_DB_ADMIN_PASSWORD}';
+GRANT ALL PRIVILEGES ON *.* TO '${MTP_DB_ADMIN_USER}'@'127.0.0.1' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO '${MTP_DB_ADMIN_USER}'@'localhost' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 SQL
 
@@ -175,16 +194,35 @@ fi
 
 php artisan key:generate --force
 
-sed -i \
-    -e "s#^DB_CONNECTION=.*#DB_CONNECTION=mysql#" \
-    -e "s#^DB_HOST=.*#DB_HOST=127.0.0.1#" \
-    -e "s#^DB_PORT=.*#DB_PORT=3306#" \
-    -e "s#^DB_DATABASE=.*#DB_DATABASE=${MTP_DB_NAME}#" \
-    -e "s#^DB_USERNAME=.*#DB_USERNAME=${MTP_DB_USER}#" \
-    -e "s#^DB_PASSWORD=.*#DB_PASSWORD=${MTP_DB_PASSWORD}#" \
-    -e "s#^APP_ENV=.*#APP_ENV=production#" \
-    -e "s#^APP_DEBUG=.*#APP_DEBUG=false#" \
+# `s@^#?[[:space:]]*KEY=.*@KEY=value@` matches the line whether or not it's
+# commented out (Laravel's stock .env.example ships DB_HOST/PORT/DATABASE/
+# USERNAME/PASSWORD commented out by default) and replaces the whole line,
+# uncommented, with the real value - a plain `s#^KEY=.*#...#` silently does
+# nothing on a commented `# KEY=...` line, which is exactly what happened
+# here originally: the sed "succeeded" (no error) but never touched anything,
+# so migrate connected with Laravel's fallback config defaults (root/laravel)
+# instead of the real app credentials just created above.
+sed -i -E \
+    -e "s@^#?[[:space:]]*DB_CONNECTION=.*@DB_CONNECTION=mysql@" \
+    -e "s@^#?[[:space:]]*DB_HOST=.*@DB_HOST=127.0.0.1@" \
+    -e "s@^#?[[:space:]]*DB_PORT=.*@DB_PORT=3306@" \
+    -e "s@^#?[[:space:]]*DB_DATABASE=.*@DB_DATABASE=${MTP_DB_NAME}@" \
+    -e "s@^#?[[:space:]]*DB_USERNAME=.*@DB_USERNAME=${MTP_DB_USER}@" \
+    -e "s@^#?[[:space:]]*DB_PASSWORD=.*@DB_PASSWORD=${MTP_DB_PASSWORD}@" \
+    -e "s@^#?[[:space:]]*DB_ADMIN_HOST=.*@DB_ADMIN_HOST=127.0.0.1@" \
+    -e "s@^#?[[:space:]]*DB_ADMIN_PORT=.*@DB_ADMIN_PORT=3306@" \
+    -e "s@^#?[[:space:]]*DB_ADMIN_USERNAME=.*@DB_ADMIN_USERNAME=${MTP_DB_ADMIN_USER}@" \
+    -e "s@^#?[[:space:]]*DB_ADMIN_PASSWORD=.*@DB_ADMIN_PASSWORD=${MTP_DB_ADMIN_PASSWORD}@" \
+    -e "s@^APP_ENV=.*@APP_ENV=production@" \
+    -e "s@^APP_DEBUG=.*@APP_DEBUG=false@" \
     .env
+
+# The two DB_ADMIN_* lines might not exist at all in .env.example yet on an
+# older checkout - append them if the sed above found nothing to replace.
+grep -q "^DB_ADMIN_HOST=" .env || echo "DB_ADMIN_HOST=127.0.0.1" >> .env
+grep -q "^DB_ADMIN_PORT=" .env || echo "DB_ADMIN_PORT=3306" >> .env
+grep -q "^DB_ADMIN_USERNAME=" .env || echo "DB_ADMIN_USERNAME=${MTP_DB_ADMIN_USER}" >> .env
+grep -q "^DB_ADMIN_PASSWORD=" .env || echo "DB_ADMIN_PASSWORD=${MTP_DB_ADMIN_PASSWORD}" >> .env
 
 if [[ "${MTP_DOMAIN}" != "_" ]]; then
     sed -i "s#^APP_URL=.*#APP_URL=https://${MTP_DOMAIN}#" .env
@@ -199,6 +237,12 @@ npm run build
 # ---------------------------------------------------------------------------
 log "Running migrations and seeders"
 # ---------------------------------------------------------------------------
+# A stale bootstrap/cache/config.php from an earlier attempt (this script is
+# safe to re-run, so that's a real scenario) makes Laravel ignore .env
+# entirely - clear it first so the DB_* values just written above are
+# actually the ones migrate/seed connect with, not whatever was cached
+# before .env existed or had different values.
+php artisan config:clear
 php artisan migrate --force --seed
 php artisan storage:link || true
 
@@ -326,9 +370,12 @@ fi
 echo " App database:      ${MTP_DB_NAME}"
 echo " App DB user:        ${MTP_DB_USER}"
 echo " App DB password:    ${MTP_DB_PASSWORD}"
+echo " Admin DB user:      ${MTP_DB_ADMIN_USER}  (used by Module 4 to manage"
+echo "                     other databases - not the same as the app's own DB user)"
+echo " Admin DB password:  ${MTP_DB_ADMIN_PASSWORD}"
 echo
-echo " The DB password above is also saved in this app's .env file"
-echo " (${MTP_APP_DIR}/.env) - copy it somewhere safe now."
+echo " Both passwords above are also saved in this app's .env file"
+echo " (${MTP_APP_DIR}/.env) - copy them somewhere safe now."
 echo
 echo " Next steps: point this server's SSL (Module 10 in the panel) at a"
 echo " real domain, and see INSTALL.md for post-install hardening notes."
