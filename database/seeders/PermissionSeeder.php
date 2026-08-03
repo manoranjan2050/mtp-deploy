@@ -39,6 +39,7 @@ class PermissionSeeder extends Seeder
         'view application logs',
         'manage monitoring alerts',
         'manage servers',
+        'manage docker',
     ];
 
     public function run(): void

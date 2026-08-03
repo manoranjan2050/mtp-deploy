@@ -54,4 +54,24 @@ return [
         'account_api_token' => env('CLOUDFLARE_ACCOUNT_API_TOKEN'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Docker (Module 19)
+    |--------------------------------------------------------------------------
+    |
+    | Docker Engine's own REST API (https://docs.docker.com/engine/api/) -
+    | normally reachable only via a local Unix socket
+    | (/var/run/docker.sock), which this app talks to over a TCP endpoint
+    | instead (e.g. via a `socat` bridge, or Docker's own `-H tcp://...`
+    | flag) since Laravel's HTTP client speaks HTTP, not raw Unix sockets.
+    | Exposing the Docker socket over TCP without TLS is a real root-
+    | equivalent privilege escalation risk if it's reachable from anywhere
+    | but localhost - see docs/Security.md.
+    |
+    */
+
+    'docker' => [
+        'base_url' => env('DOCKER_API_BASE_URL', 'http://localhost:2375'),
+    ],
+
 ];

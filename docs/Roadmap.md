@@ -26,12 +26,12 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 16 | Notifications (Telegram/Email/Discord/Slack) | ✅ | 1 |
 | 17 | API (REST + tokens + webhooks) | ✅ | 1 |
 | 18 | Multi Server (remote server connections, groups) | ✅ | 2, 8 |
-| 19 | Docker (containers, images, compose) | ⬜ | 18 |
+| 19 | Docker (containers, images, compose) | ✅ | 18 |
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 19 — Docker.** Modules 1–18 are all complete -
-307 passing tests, Pint clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
+**Module 20 — AI Assistant (final module).** Modules 1–19 are all complete -
+325 passing tests, Pint clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
 project keeps hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a

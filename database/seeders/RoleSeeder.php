@@ -46,6 +46,7 @@ class RoleSeeder extends Seeder
             'view application logs',
             'manage monitoring alerts',
             'manage servers',
+            'manage docker',
         ]);
 
         // Developer manages websites they created (scoped in WebsitePolicy, not

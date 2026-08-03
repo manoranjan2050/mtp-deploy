@@ -551,6 +551,40 @@ connection-refused failure path - the same "test what's genuinely
 reachable, disclose what isn't" principle as every prior infrastructure
 module.
 
+## Docker (Module 19): Http::fake() hid a real bug that browser verification caught
+
+`Illuminate\Http\Client\PendingRequest::get()`/`post()`/etc. throw
+`Illuminate\Http\Client\ConnectionException` for a genuine network-level
+failure (nothing listening on the host/port, DNS failure, timeout) - this
+is a **different** failure mode than a non-2xx HTTP response, which just
+returns an unsuccessful `Response` object, no exception at all. Every
+`DockerApiClientTest` case used `Http::fake()`, which never exercises the
+real transport layer, so none of them could have caught this: the first
+`DockerApiClient` implementation didn't catch `ConnectionException`
+anywhere, and it took loading the actual Filament page in the browser
+against this environment's genuinely-absent Docker daemon to surface an
+uncaught 500 instead of the intended honest "could not reach Docker"
+message. Added a real (non-faked) test afterward - point
+`services.docker.base_url` at a closed local port and assert the honest
+failure - specifically because `Http::fake()` cannot verify this path.
+**Lesson: whenever a service wraps `Http::` calls and its tests use
+`Http::fake()` exclusively, the exception-vs-unsuccessful-response
+distinction for genuine connection failures needs at least one real,
+unfaked test case, or a browser/manual check - fakes alone will not
+surface it.**
+
+Docker's own `POST /images/create` endpoint takes its `fromImage` parameter
+as a **query string**, not a request body - passing it as `Http::post($url,
+['fromImage' => $name])` silently sends it as a form/JSON body instead,
+which the real Docker Engine API ignores outright (this would have shipped
+a broken "pull image" feature that only failed against a real daemon, never
+against `Http::fake()`, since the fake doesn't validate what Docker itself
+expects). Caught by asserting the exact request URL in the fake-backed test,
+not just the response - `Http::assertSent()` checking `$request->url()`
+would have caught the same bug even without a real daemon, worth doing for
+any endpoint whose parameter placement (body vs. query string) isn't
+uniform.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

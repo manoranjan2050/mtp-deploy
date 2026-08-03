@@ -88,4 +88,14 @@ class ServerPolicy
     {
         return $user->can('manage monitoring alerts');
     }
+
+    /**
+     * Starting/stopping/removing a container or pulling an image reaches
+     * the whole server's Docker daemon, not one site - the same trust
+     * level as Terminal/Cron, not delegated to `developer`/`viewer`.
+     */
+    public function manageDocker(User $user, Server $server): bool
+    {
+        return $user->can('manage docker');
+    }
 }

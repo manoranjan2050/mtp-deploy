@@ -339,6 +339,31 @@ model. Security-relevant constraints, restated:
   disclosed deviation as Module 11/12's crontab/supervisorctl calls (see
   CLAUDE.md).
 
+## Docker (Module 19, as built)
+- Managing containers/images (start/stop/restart/pull/remove) is
+  admin/super-admin only, gated by a new `manage docker` permission via
+  `ServerPolicy::manageDocker()` - the same trust level as Terminal/Cron,
+  since a container running as root inside can reach the host in ways a
+  narrowly-scoped role shouldn't casually trigger.
+- **The Docker Engine API is normally reachable only via a local Unix
+  socket** (`/var/run/docker.sock`), which this app instead talks to over a
+  configured TCP endpoint (`config('services.docker.base_url')`) since
+  Laravel's HTTP client speaks HTTP, not raw Unix sockets. Exposing the
+  Docker socket over TCP **without TLS client-cert auth** is a real
+  root-equivalent privilege escalation risk if reachable from anywhere but
+  localhost - anyone who can reach it can run an arbitrary container with
+  the host's filesystem bind-mounted in. Production deployments must bind
+  this to `127.0.0.1` only (or use a genuine Unix-socket bridge/TLS), never
+  a public interface.
+- A connection failure to the Docker Engine API (`ConnectionException`,
+  e.g. no daemon running) is caught and surfaced as an honest "could not
+  reach Docker" message - it never silently renders an empty container
+  list indistinguishable from "Docker has zero containers," which would
+  hide a real outage as if everything were fine.
+- No image name or container ID is ever built into a raw shell command -
+  every request goes through typed method arguments to Docker's REST API
+  (`DockerApiClient`), never a shelled-out `docker` CLI invocation.
+
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must
   run behind HTTPS (the panel's own SSL, independent of the SSL the panel provisions

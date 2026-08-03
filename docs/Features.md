@@ -357,9 +357,23 @@ module currently in progress.
   production.
 
 ## Module 19 — Docker
-- [ ] Container list/start/stop/restart
-- [ ] Image pull/remove
-- [ ] Compose stack management
+- [x] Container list/start/stop/restart - real Docker Engine API calls
+      (`DockerApiClient`), live on every page load, no local DB mirror
+- [x] Image pull/remove - real `POST /images/create`/`DELETE /images/{id}`
+- [x] Honest failure reporting - a genuinely unreachable Docker daemon
+      (connection refused/timeout) is caught and shown in the UI, never an
+      uncaught 500 or a fabricated "connected" state
+- [ ] Compose stack management - **not built**; would need either shelling
+      out to the `docker compose` CLI or Docker's newer Compose-specific API
+      surface, a meaningfully larger scope than container/image management.
+      Disclosed gap, revisit if a concrete compose-stack use case comes up.
+- **This dev environment has no Docker daemon reachable at all** (`docker`
+  isn't installed) - `Http::fake()` verifies Docker Engine's real, documented
+  request/response shapes instead of a live daemon round-trip, the same
+  disclosed deviation as Module 9's Cloudflare and Module 16's Telegram/
+  Discord/Slack (see CLAUDE.md). A real reachable Docker Engine API endpoint
+  should be used for one manual smoke test before relying on this in
+  production.
 
 ## Module 20 — AI Assistant
 - [ ] Explain an error (paste or auto-attached log excerpt)

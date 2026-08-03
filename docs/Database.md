@@ -573,8 +573,19 @@ docs/Architecture.md's "driven the same way, over SSH" describes) is a
 large cross-cutting change **not done in this pass** - disclosed gap, see
 docs/Features.md.
 
-### `docker_containers` / `docker_images` (Module 19)
-Sketched only — schema finalized in Module 19.
+## Module 19 — Docker ✅ (as built)
+
+No new table - Docker itself is the authoritative source of truth for
+container/image state, the same "nothing to persist" principle as Module 15's
+`ProcessListService` (live `ps` output, no DB mirror). `DockerApiClient`
+reads containers/images live from Docker Engine's own REST API
+(https://docs.docker.com/engine/api/) on every page load; there is no
+`docker_containers`/`docker_images` table to keep in sync or let drift stale.
+
+New permission: `manage docker` (admin/super-admin only, via
+`ServerPolicy::manageDocker()`) - starting/stopping/removing a container or
+pulling an image reaches the whole server's Docker daemon, the same trust
+level as Terminal/Cron, not delegated to `developer`/`viewer`.
 
 ## Conventions
 - Every `*_id` foreign key has an explicit `->constrained()->cascadeOnDelete()` or

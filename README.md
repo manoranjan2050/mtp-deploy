@@ -38,8 +38,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 16 | Notifications — Email/Telegram/Discord/Slack, self-service channels, wired to alerts + deployments | ✅ |
 | 17 | API — REST for auth/websites/deployments, scoped token abilities, HMAC-signed outbound webhooks | ✅ |
 | 18 | Multi Server — add/manage remote servers, real SSH connectivity via phpseclib, tag-based groups | ✅ |
-| 19 | Docker | ⬜ next |
-| 20 | AI Assistant | ⬜ |
+| 19 | Docker — container/image management via the Docker Engine API | ✅ |
+| 20 | AI Assistant | ⬜ next |
 
 Full module order and depends-on graph: [docs/Roadmap.md](docs/Roadmap.md). Live,
 granular in-progress checklist: [TODO.md](TODO.md).

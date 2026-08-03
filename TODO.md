@@ -1053,6 +1053,33 @@ Also built at the user's explicit request, outside the numbered module list:
       connectivity primitive and server management UI, not a rewrite of
       every prior module's execution model.
 
+## Done — Module 19: Docker
+
+- [x] `DockerApiClient` (real, not mocked) - genuine Docker Engine REST API
+      calls for containers (list/start/stop/restart) and images (list/pull/
+      remove); no local DB table, Docker itself is authoritative, same
+      "nothing to persist" principle as Module 15's `ProcessListService`
+- [x] Actions (Start/Stop/Restart/PullImage/RemoveImage) logging
+      `activity('docker')`, and a `Docker` Filament page (containers table +
+      pull-image form + images table), gated by a new `manage docker`
+      permission (`ServerPolicy::manageDocker()`, admin/super-admin only)
+- [x] `php artisan test` green (325 passed, 2 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: initially crashed with an uncaught 500
+      (`ConnectionException` not caught) - fixed `DockerApiClient` to catch
+      real connection failures and return an honest failure result, then
+      confirmed the page renders correctly with "Could not reach the Docker
+      Engine API," no console errors; also caught and fixed a real bug where
+      `pullImage()` sent Docker's required `fromImage` query parameter as a
+      request body instead (silently ignored by the real API)
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`,
+      `docs/Security.md` updated
+- [ ] Compose stack management - **not built**, disclosed gap, see
+      docs/Features.md
+- **This dev environment has no Docker daemon at all** (`docker` isn't
+  installed) - `Http::fake()` tests verify Docker Engine's real, documented
+  API shapes; one test also hits a real closed port to exercise the genuine
+  `ConnectionException` path. A real Docker Engine API endpoint should be
+  used for one manual smoke test before production use.
+
 ## Up Next
-- [ ] Module 19 — Docker (see docs/Roadmap.md)
-- [ ] Module 20 — AI Assistant (see docs/Roadmap.md)
+- [ ] Module 20 — AI Assistant (final module, see docs/Roadmap.md)
