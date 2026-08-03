@@ -115,6 +115,17 @@ starts on boot — nothing here needs a manual restart after a reboot.
   `DB_PASSWORD` lines are still commented out (`# DB_HOST=...`) — Laravel's
   stock `.env.example` ships them commented by default; uncomment and fill
   them in, then `php artisan config:clear` again before re-running `migrate`.
+- **`migrate` fails with `Access denied for user 'mtpdeploy'@'localhost' (using password: YES)`**
+  — this is a password *mismatch* between `.env` and the actual MySQL user,
+  not a missing-config issue. It happens if `install.sh` was run more than
+  once without `MTP_DB_PASSWORD` pinned to a fixed value: each run generates
+  a fresh random password and writes it into `.env`, but older versions of
+  this script only ran `CREATE USER IF NOT EXISTS ...`, which does nothing
+  if the user already exists from an earlier run — so MySQL kept the *first*
+  run's password while `.env` moved on to a newer one. Fixed by adding an
+  explicit `ALTER USER ... IDENTIFIED BY ...` after `CREATE USER` so the
+  password is force-synced to `.env` on every run. `git pull` to get the fix,
+  then just re-run `sudo ./install.sh` — no manual SQL needed, it self-heals.
 
 ## Manual step-by-step
 
