@@ -10,6 +10,42 @@ use App\Models\User;
 class ServerPolicy
 {
     /**
+     * Managing servers themselves (adding a new remote server, editing its
+     * SSH credentials, deleting it) is admin/super-admin only - a server's
+     * ssh_private_key grants shell access to an entire machine, the same
+     * trust level as Terminal, never delegated to `developer`/`viewer`.
+     */
+    public function viewAny(User $user): bool
+    {
+        return $user->can('manage servers');
+    }
+
+    public function view(User $user, Server $server): bool
+    {
+        return $user->can('manage servers');
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->can('manage servers');
+    }
+
+    public function update(User $user, Server $server): bool
+    {
+        return $user->can('manage servers');
+    }
+
+    public function delete(User $user, Server $server): bool
+    {
+        return $user->can('manage servers');
+    }
+
+    public function testConnection(User $user, Server $server): bool
+    {
+        return $user->can('manage servers');
+    }
+
+    /**
      * Shell access is admin/super-admin only - unlike Website/Database, this
      * isn't scoped to "sites I created" for developers, since a terminal on
      * the underlying server reaches every site and every database on it, far

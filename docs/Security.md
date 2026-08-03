@@ -311,6 +311,34 @@ model. Security-relevant constraints, restated:
   choose," which is inherent to the feature (same as any outbound-webhook
   product).
 
+## Multi Server (Module 18, as built)
+- Managing servers (adding/editing/deleting, testing a connection) is
+  admin/super-admin only, gated by a new `manage servers` permission via
+  `ServerPolicy` - a server's `ssh_private_key` grants shell access to an
+  entire machine, the same trust level as Module 8's Terminal, never
+  delegated to `developer`/`viewer`.
+- `ssh_private_key` is stored **encrypted** (`'ssh_private_key' =>
+  'encrypted'`, already the case since Module 3), same principle as every
+  other credential in this app (Cloudflare API tokens, notification channel
+  config, webhook secrets).
+- Real SSH connectivity uses `phpseclib3` (a pure-PHP SSH2 client), not a
+  shelled-out `ssh` binary call - no risk of shell-argument injection from
+  a server's stored host/user/key values, since phpseclib takes them as
+  typed constructor/method arguments, never a concatenated command string.
+- `SshConnectionService::run()` is the enabling primitive for future
+  remote-execution work, not yet wired into any command-whitelist model of
+  its own - see docs/Database.md/Features.md for the disclosed scope
+  boundary (existing local-only services aren't rerouted through it yet).
+- The local server (`is_local = true`) cannot be deleted or connection-
+  tested through the UI (`visible(fn (Server $record): bool => !
+  $record->is_local)`) - it has no SSH credentials to test in the first
+  place, since every module through 17 talks to it via local process
+  execution, not SSH.
+- **This dev environment has no real remote SSH server** - only the
+  honest-failure path (unreachable host) is exercised in tests, the same
+  disclosed deviation as Module 11/12's crontab/supervisorctl calls (see
+  CLAUDE.md).
+
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must
   run behind HTTPS (the panel's own SSL, independent of the SSL the panel provisions

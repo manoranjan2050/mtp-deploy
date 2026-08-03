@@ -519,6 +519,38 @@ test using it will not include it. Any test asserting on the real token list
 must create tokens the normal way (`$user->createToken(...)`) and use
 `Sanctum::actingAs()` only to simulate the *current request's* auth context.
 
+## Multi Server (Module 18): phpseclib over shelling out to `ssh`
+
+Chose `phpseclib3/phpseclib` (installed fresh, `composer require
+phpseclib/phpseclib:^3.0`) over shelling out to a system `ssh` binary via
+`Symfony\Process`, for the same reason `LogFileReaderService` (Module 14)
+beat every prior module reading real server state: it's pure PHP, so it
+works identically on this Windows dev box and a real Linux control-plane
+server, no `ssh` client installation assumed. It also sidesteps an entire
+class of shell-argument-injection risk that a concatenated `ssh user@host
+command` string would otherwise need careful escaping for - phpseclib takes
+host/user/key/command as typed method arguments, never a shell string.
+
+`servers.ssh_host`/`ssh_port`/`ssh_user`/`ssh_private_key`/`status`/`os` had
+already existed since Module 3's initial schema, unused - a "sketched for
+forward-compatibility" column set genuinely paid off here: no migration was
+needed to add the connection fields themselves, only `tags` and
+`last_connected_at`. Worth checking a table's full column list, not just
+what earlier modules actually read/wrote, before assuming new columns are
+needed.
+
+Real SSH testing hits the same "no real target infrastructure in this
+sandbox" wall as Module 11's crontab and Module 12's supervisorctl - except
+here there's no way to install anything server-side (an SSH *server*
+daemon, not a client) to make the success path testable locally. Generated
+a real RSA keypair at runtime via `phpseclib3\Crypt\RSA::createKey()` (so
+`PublicKeyLoader::load()` gets syntactically valid PEM input rather than
+throwing before the network attempt even happens) and pointed `ssh_host` at
+a closed local port (`127.0.0.1:1`) to exercise the real, honest
+connection-refused failure path - the same "test what's genuinely
+reachable, disclose what isn't" principle as every prior infrastructure
+module.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

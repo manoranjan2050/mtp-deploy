@@ -37,8 +37,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 15 | Monitoring & alerts — historical charts, bandwidth, process list, threshold alerts | ✅ |
 | 16 | Notifications — Email/Telegram/Discord/Slack, self-service channels, wired to alerts + deployments | ✅ |
 | 17 | API — REST for auth/websites/deployments, scoped token abilities, HMAC-signed outbound webhooks | ✅ |
-| 18 | Multi Server | ⬜ next |
-| 19 | Docker | ⬜ |
+| 18 | Multi Server — add/manage remote servers, real SSH connectivity via phpseclib, tag-based groups | ✅ |
+| 19 | Docker | ⬜ next |
 | 20 | AI Assistant | ⬜ |
 
 Full module order and depends-on graph: [docs/Roadmap.md](docs/Roadmap.md). Live,

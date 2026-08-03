@@ -1018,6 +1018,41 @@ Also built at the user's explicit request, outside the numbered module list:
 - [ ] Backup-succeeded/failed and SSL-expiring-soon webhook events, generated
       OpenAPI spec - **not built**, disclosed gaps
 
+## Done — Module 18: Multi Server
+
+- [x] Installed `phpseclib/phpseclib:^3.0` - a pure-PHP SSH2 client, no
+      system `ssh` binary assumed, works identically on this Windows dev
+      box and a real Linux control-plane server
+- [x] `SshConnectionService` (real, not mocked) - `connect()`/
+      `testConnection()`/`run()`, all genuine SSH2 handshakes/commands
+- [x] `TestServerConnectionAction` - runs a real `uname -a` over SSH, updates
+      `status`/`last_connected_at`/`os` honestly (never fakes a successful
+      connection), logs `activity('server')`
+- [x] New `ServerResource` Filament CRUD (name, hostname, SSH host/port/
+      user/private key, tags) - "Test connection" row action, local server
+      exempt from delete/connection-test (no SSH credentials to test)
+- [x] New `manage servers` permission (admin/super-admin only,
+      `ServerPolicy::viewAny/view/create/update/delete/testConnection`) -
+      same trust level as Terminal, an SSH private key grants shell access
+      to an entire machine
+- [x] `servers` gained `tags` (server groups, tag-based) and
+      `last_connected_at`; every other column needed (`ssh_host` etc.) had
+      already existed unused since Module 3
+- [x] `php artisan test` green (307 passed, 2 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: the local server correctly hides Test
+      Connection/Delete; the Create Server form renders every field
+      (name/hostname/SSH host/port/user/private key/tags) correctly with
+      helper text, no console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`,
+      `docs/Security.md` updated
+- [ ] Deploy to a specific remote server (routing the *existing* Cron/
+      Queue/Terminal/Deployment/Backup/Monitoring services through SSH for
+      non-local servers) - **not built in this pass**, a large
+      cross-cutting change across many already-built services; disclosed
+      gap, see docs/Database.md/Features.md. This module ships the
+      connectivity primitive and server management UI, not a rewrite of
+      every prior module's execution model.
+
 ## Up Next
-- [ ] Module 18 — Multi Server (see docs/Roadmap.md)
-- [ ] ...through Module 20, one at a time, per docs/Roadmap.md
+- [ ] Module 19 — Docker (see docs/Roadmap.md)
+- [ ] Module 20 — AI Assistant (see docs/Roadmap.md)

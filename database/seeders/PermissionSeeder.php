@@ -38,6 +38,7 @@ class PermissionSeeder extends Seeder
         'manage cron jobs',
         'view application logs',
         'manage monitoring alerts',
+        'manage servers',
     ];
 
     public function run(): void

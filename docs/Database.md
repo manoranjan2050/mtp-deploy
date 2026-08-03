@@ -84,11 +84,13 @@ the plain `App\Models\SystemMetricSnapshot`).
 | ssh_host | string nullable | |
 | ssh_port | unsigned smallint default 22 | |
 | ssh_user | string nullable | |
-| ssh_private_key | text nullable | encrypted cast; unused until Module 18 |
+| ssh_private_key | text nullable | encrypted cast; used for real by Module 18's `SshConnectionService` |
 | is_local | boolean default false | the one seeded row (`ServerSeeder`) has this true - every module through 17 operates against it |
-| status | string, cast to `App\Enums\ServerStatus` | pending/connected/unreachable |
-| os | string nullable | `PHP_OS_FAMILY` for the local row |
+| status | string, cast to `App\Enums\ServerStatus` | pending/connected/unreachable - set for real by Module 18's connection test |
+| os | string nullable | `PHP_OS_FAMILY` for the local row; a remote server's real `uname -a` output once connected (Module 18) |
 | php_versions | json nullable | selectable PHP versions for websites on this server; falls back to `['8.2','8.3','8.4']` when empty (`Server::availablePhpVersions()`) |
+| tags | json nullable | (Module 18) freeform tags for grouping/filtering servers |
+| last_connected_at | timestamp nullable | (Module 18) set on a successful real SSH connection test |
 | created_by | fk users, nullOnDelete | |
 | timestamps | | |
 
@@ -548,6 +550,28 @@ No new permission for the REST surface's authorization model - a token's
 Eloquent policies (`WebsitePolicy`, `DeploymentPolicy`) the Filament UI
 already uses govern which records the token's owner can act on. See
 docs/Security.md.
+
+## Module 18 — Multi Server ✅ (as built)
+
+No new table - extends the `servers` table already scaffolded since Module 3
+(`tags`, `last_connected_at` added this module; `ssh_host`/`ssh_port`/
+`ssh_user`/`ssh_private_key`/`status`/`os` all already existed, unused for
+real until now).
+
+New permission: `manage servers` (admin/super-admin only, via a new
+`ServerResource` gated by `ServerPolicy::viewAny/view/create/update/delete/
+testConnection`) - a server's `ssh_private_key` grants shell access to an
+entire machine, the same trust level as Terminal, never delegated to
+`developer`/`viewer`.
+
+**Scope note**: this module ships real SSH connectivity (via `phpseclib3`,
+a pure-PHP SSH2 client - see docs/Security.md) and server management, the
+foundation for a true multi-server fleet - not a full remote-execution
+rewrite of every existing module. Routing Cron/Queue/Terminal/Deployments/
+Backups/Monitoring through SSH for non-local servers (as
+docs/Architecture.md's "driven the same way, over SSH" describes) is a
+large cross-cutting change **not done in this pass** - disclosed gap, see
+docs/Features.md.
 
 ### `docker_containers` / `docker_images` (Module 19)
 Sketched only — schema finalized in Module 19.

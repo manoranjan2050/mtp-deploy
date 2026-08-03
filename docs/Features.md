@@ -333,9 +333,28 @@ module currently in progress.
       optional for this module.
 
 ## Module 18 — Multi Server
-- [ ] Connect a remote server (SSH key exchange, health check)
-- [ ] Deploy to a specific remote server
-- [ ] Server groups (tag-based)
+- [x] Connect a remote server - a new `ServerResource` Filament CRUD page
+      (name, SSH host/port/user/private key), admin/super-admin only
+- [x] Health check - real SSH connectivity via `phpseclib3`
+      (`SshConnectionService`), a "Test connection" row action runs a real
+      `uname -a` over SSH and updates `status`/`last_connected_at`/`os`
+      honestly (never fakes a successful connection)
+- [x] Server groups (tag-based) - a freeform `tags` array column, shown/
+      filterable in the Servers table
+- [ ] Deploy to a specific remote server - **not built in this pass**; this
+      module ships the SSH connectivity primitive
+      (`SshConnectionService::run()`) and server management UI, the
+      foundation for a true multi-server fleet, but routing the *existing*
+      Cron/Queue/Terminal/Deployment/Backup/Monitoring services through SSH
+      for non-local servers is a large cross-cutting change across many
+      already-built services, disclosed as follow-up rather than attempted
+      as a rushed, undertested pass across all of them. See docs/Database.md.
+- **This dev environment has no real remote SSH server to connect to** -
+  only the honest-failure path (unreachable host/wrong credentials) is
+  exercised in tests, the same disclosed pattern as Module 11's crontab sync
+  and Module 12's supervisorctl calls. A real remote server should be used
+  for one manual smoke test of the success path before relying on this in
+  production.
 
 ## Module 19 — Docker
 - [ ] Container list/start/stop/restart

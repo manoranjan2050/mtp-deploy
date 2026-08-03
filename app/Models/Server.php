@@ -26,6 +26,12 @@ class Server extends Model
         'cpu_alert_threshold',
         'memory_alert_threshold',
         'disk_alert_threshold',
+        'tags',
+        'last_connected_at',
+    ];
+
+    protected $attributes = [
+        'status' => 'pending',
     ];
 
     protected function casts(): array
@@ -34,7 +40,9 @@ class Server extends Model
             'is_local' => 'boolean',
             'status' => ServerStatus::class,
             'php_versions' => 'array',
+            'tags' => 'array',
             'ssh_private_key' => 'encrypted',
+            'last_connected_at' => 'datetime',
         ];
     }
 

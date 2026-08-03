@@ -45,6 +45,7 @@ class RoleSeeder extends Seeder
             'manage cron jobs',
             'view application logs',
             'manage monitoring alerts',
+            'manage servers',
         ]);
 
         // Developer manages websites they created (scoped in WebsitePolicy, not

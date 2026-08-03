@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^4.1",
+        "phpseclib/phpseclib": "^3.0",
         "spatie/laravel-activitylog": "^4.12",
         "spatie/laravel-permission": "^6.25"
     },
