@@ -8,7 +8,9 @@ use App\Actions\Deployments\RollbackDeploymentAction;
 use App\Enums\DeploymentStatus;
 use App\Enums\DeploymentTrigger;
 use App\Enums\NotificationChannelType;
+use App\Enums\WebhookEvent;
 use App\Enums\WebsiteFramework;
+use App\Jobs\DispatchWebhookJob;
 use App\Mail\PlainNotificationMail;
 use App\Models\Server;
 use App\Models\User;
@@ -17,6 +19,7 @@ use App\Services\Deployments\GitDeploymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -135,6 +138,24 @@ class GitDeploymentServiceTest extends TestCase
             return $mailable->hasTo('deployer@example.test')
                 && str_contains($mailable->envelope()->subject, 'Success');
         });
+    }
+
+    public function test_a_subscribed_webhook_endpoint_is_notified_on_completion(): void
+    {
+        Queue::fake();
+
+        $user = User::factory()->create();
+        $endpoint = $user->webhookEndpoints()->create([
+            'url' => 'https://example.test/hook',
+            'secret' => 'shh',
+            'events' => [WebhookEvent::DeploymentSucceeded->value],
+        ]);
+
+        $website = $this->makeWebsite();
+
+        app(GitDeploymentService::class)->deploy($website, DeploymentTrigger::Manual, $user);
+
+        Queue::assertPushed(DispatchWebhookJob::class, fn (DispatchWebhookJob $job) => $job->endpoint->is($endpoint) && $job->event === WebhookEvent::DeploymentSucceeded);
     }
 
     private function commitFile(string $filename, string $contents, string $message): void

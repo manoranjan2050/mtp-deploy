@@ -480,6 +480,45 @@ an empty result - any code path that calls it (here,
 `PermissionSeeder`/`RoleSeeder` to have run first, even in a test that
 creates zero users. Forgetting this seed step doesn't fail quietly.
 
+## API (Module 17): the base Controller has no AuthorizesRequests trait
+
+Laravel 12's default skeleton `App\Http\Controllers\Controller` is an empty
+abstract class - `use Illuminate\Foundation\Auth\Access\AuthorizesRequests`
+is no longer included by default (older Laravel skeletons had this). Calling
+`$this->authorize(...)` in any controller fails at runtime with `Call to
+undefined method Controller::authorize()`, not a compile-time error, so it
+only surfaces the first time a test actually hits that code path. Added the
+trait to the shared base `Controller` class once, rather than per-controller,
+since every API controller needs it.
+
+routes/api.php has **no rate limiter applied by default** in a Laravel 12 app
+that added Sanctum manually (not via `php artisan install:api`) -
+`Middleware::throttleApi()` must be called explicitly in `bootstrap/app.php`
+to append `throttle:api` to the `api` middleware group, and the `api`
+RateLimiter itself must be registered via `RateLimiter::for('api', ...)`
+somewhere (this project's `AppServiceProvider::boot()`) - neither exists
+until you add them. Worth checking before assuming "the framework already
+rate-limits API routes."
+
+Route middleware parameter strings use only the *first* `:` to split the
+middleware alias from its parameter list - `'ability:websites:read,*'` parses
+as alias `ability` with params `websites:read,*`, split by comma into
+`['websites:read', '*']`. Colons inside an individual parameter (like an
+ability name that is itself `resource:action`) are safe; only the first
+colon in the whole string is special.
+
+Sanctum's `MissingAbilityException` default message is the confusingly
+generic "Invalid ability provided." - it fires whenever *none* of the
+required abilities match the token's abilities, not when an ability string
+is syntactically malformed. Don't chase a parsing bug from that message
+alone; check what abilities the token actually has first.
+
+`Sanctum::actingAs($user, $abilities)` in tests uses a Mockery mock, not a
+real persisted `PersonalAccessToken` row - `$user->tokens()->count()` in a
+test using it will not include it. Any test asserting on the real token list
+must create tokens the normal way (`$user->createToken(...)`) and use
+`Sanctum::actingAs()` only to simulate the *current request's* auth context.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

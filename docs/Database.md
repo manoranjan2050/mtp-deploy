@@ -520,6 +520,35 @@ output live, on demand; there is nothing to persist.
 No new permission - identical to API Tokens/Sessions, every user manages
 only their own rows (`$user->notificationChannels()`), never another user's.
 
+## Module 17 — API ✅ (as built)
+
+No new table for the REST surface itself - it reuses the existing Website/
+Deployment/User/Session Eloquent models via thin controllers that call the
+same Actions the Filament UI calls (`CreateWebsiteAction`,
+`TriggerDeploymentAction`, etc.).
+
+### `webhook_endpoints`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| user_id | fk users, cascadeOnDelete | self-service, same pattern as `notification_channels` |
+| url | string | the receiving endpoint |
+| secret | text, cast `encrypted` | generated server-side, shown once at creation, used to HMAC-sign every delivery |
+| events | json | array of `App\Enums\WebhookEvent` values this endpoint is subscribed to |
+| is_enabled | bool default true | disabled endpoints are skipped by `WebhookDispatchService` |
+| timestamps | | |
+
+`DeploymentTrigger` gained a third case, `Api = 'api'`, alongside `Manual`/
+`Webhook` - a deployment triggered through the REST API is recorded as such,
+distinct from a Filament button click or an inbound Git-provider webhook.
+
+No new permission for the REST surface's authorization model - a token's
+`ApiTokenAbility` (new: `websites:read`/`write`, `deployments:read`/`write`,
+`webhooks:write`) gates which endpoints are reachable, while the same
+Eloquent policies (`WebsitePolicy`, `DeploymentPolicy`) the Filament UI
+already uses govern which records the token's owner can act on. See
+docs/Security.md.
+
 ### `docker_containers` / `docker_images` (Module 19)
 Sketched only — schema finalized in Module 19.
 

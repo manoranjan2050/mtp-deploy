@@ -6,11 +6,13 @@ namespace App\Services\Deployments;
 
 use App\Enums\DeploymentStatus;
 use App\Enums\DeploymentTrigger;
+use App\Enums\WebhookEvent;
 use App\Enums\WebsiteFramework;
 use App\Models\Deployment;
 use App\Models\User;
 use App\Models\Website;
 use App\Services\Notifications\NotificationDispatchService;
+use App\Services\Webhooks\WebhookDispatchService;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
@@ -33,6 +35,7 @@ class GitDeploymentService
     public function __construct(
         private readonly LaravelDeploymentPipelineService $pipeline,
         private readonly NotificationDispatchService $notifications,
+        private readonly WebhookDispatchService $webhooks,
     ) {}
 
     public function deploy(
@@ -89,6 +92,18 @@ class GitDeploymentService
                 $triggeredBy,
                 "Deployment {$deployment->status->getLabel()}: {$website->domain}",
                 "Branch {$deployment->branch}, commit {$deployment->commit_sha}.",
+            );
+
+            $this->webhooks->dispatchForUser(
+                $triggeredBy,
+                $deployment->status === DeploymentStatus::Failed ? WebhookEvent::DeploymentFailed : WebhookEvent::DeploymentSucceeded,
+                [
+                    'deployment_id' => $deployment->id,
+                    'website_id' => $website->id,
+                    'domain' => $website->domain,
+                    'status' => $deployment->status->value,
+                    'commit_sha' => $deployment->commit_sha,
+                ],
             );
         }
 

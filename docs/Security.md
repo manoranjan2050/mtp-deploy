@@ -267,6 +267,50 @@ model. Security-relevant constraints, restated:
   deviation as Module 9/10 (see CLAUDE.md). Email is fully real and was
   manually verified end-to-end via the `log` mail driver.
 
+## API (Module 17, as built)
+- Two independent authorization layers, deliberately not collapsed into one:
+  a token's `ApiTokenAbility` scopes gate *which endpoints are reachable at
+  all* (Sanctum's `ability:` middleware, checked before the controller
+  runs), while the exact same Eloquent policies the Filament UI already
+  uses (`WebsitePolicy`, `DeploymentPolicy`) gate *which records* the
+  token's owner can act on underneath that. A `websites:write` token
+  belonging to a `developer`-role user still can't touch another
+  developer's website via the API, exactly as in the panel - the API
+  never widens what a role is trusted with, it only exposes the same
+  trust boundary over HTTP.
+- Every write endpoint validates input server-side (`$request->validate()`)
+  before it reaches an Action - the same Actions the Filament forms call,
+  so there is exactly one code path per mutation, not a parallel
+  API-specific implementation that could drift out of sync with the UI's
+  validation.
+- Rate limiting is two-tier: a generous default (`throttle:api`, 120
+  req/min, keyed by authenticated user id) and a much stricter one on
+  deploy-triggering endpoints specifically (`throttle:deploy-api`, 10
+  req/min) - deploying is comparatively expensive (a real git
+  fetch/checkout/pipeline run) and a more attractive target for
+  deploy-storm abuse than a read endpoint.
+- Issuing a *new* API token via the API itself (`POST /api/v1/auth/tokens`)
+  requires re-entering the account password in the request body, checked
+  server-side with `password_verify()` - a stolen/leaked session token
+  alone can't be used to mint a fresh, longer-lived credential.
+- Outbound webhooks: each delivery is signed with
+  `X-MTP-Signature: sha256={hmac_sha256(body, secret)}` using a
+  server-generated secret (`Str::random(40)`, never user-supplied, shown
+  once at creation) - the receiving end recomputes the same HMAC to verify
+  the payload wasn't forged or tampered with in transit, the same model
+  GitHub/Stripe use for their own outbound webhooks. The secret itself is
+  stored **encrypted** (`'secret' => 'encrypted'`), same principle as
+  Module 16's notification channel config.
+- A user's webhook endpoints are entirely self-service
+  (`$user->webhookEndpoints()`), same no-new-permission pattern as
+  Notification Channels/API Tokens/Sessions - no cross-user visibility.
+- `DispatchWebhookJob` posts to a URL the user themselves configured, not
+  one derived from request input at delivery time, so there's no
+  server-side-request-forgery surface introduced by the delivery mechanism
+  itself beyond "the user can point their own webhook at whatever URL they
+  choose," which is inherent to the feature (same as any outbound-webhook
+  product).
+
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must
   run behind HTTPS (the panel's own SSL, independent of the SSL the panel provisions

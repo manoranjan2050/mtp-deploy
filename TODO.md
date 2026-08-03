@@ -981,6 +981,43 @@ Also built at the user's explicit request, outside the numbered module list:
 - [ ] Per-event channel routing preferences - **not built**; disclosed gap,
       see docs/Features.md
 
+## Done — Module 17: API
+
+- [x] REST API for auth self-service (tokens issue/list/revoke, current
+      user, sessions list/revoke) and Websites (index/show/create/update/
+      delete/suspend/clone), all under `/api/v1`, Sanctum bearer auth
+- [x] `ApiTokenAbility` extended with resource-scoped abilities
+      (`websites:read/write`, `deployments:read/write`, `webhooks:write`),
+      enforced via Sanctum's `ability:` middleware (any-of, `*` = full
+      access) - the same Eloquent policies the Filament UI uses still gate
+      which records a token's owner can act on underneath
+- [x] Deployments REST API (trigger/list/rollback) - new
+      `DeploymentTrigger::Api` case records how a deployment was started;
+      rate-limited separately and far more strictly (`throttle:deploy-api`,
+      10/min) than the rest of the API (`throttle:api`, 120/min)
+- [x] Outbound webhooks - self-service `webhook_endpoints` per user (same
+      pattern as Module 16's notification channels), `WebhookDispatchService`
+      + queued `DispatchWebhookJob` (5 tries, backoff to 15 min), real
+      HMAC-SHA256 signed deliveries, wired to deployment succeeded/failed
+      alongside the existing Module 16 notification
+- [x] Added `AuthorizesRequests` trait to the base `Controller` (missing by
+      default in this Laravel 12 skeleton) and registered `throttle:api`/
+      `throttle:deploy-api` rate limiters (neither exists by default without
+      running `php artisan install:api`)
+- [x] `php artisan test` green (296 passed, 2 skipped), `vendor/bin/pint` clean
+- [x] Manually verified over real HTTP (not just the test client): created a
+      real Sanctum token via tinker, called `GET /api/v1/websites` with it via
+      curl and got a real paginated JSON response, confirmed a wrong-ability
+      request correctly returns 403; separately created a real webhook
+      endpoint through the Filament UI and confirmed its secret is stored
+      encrypted at rest
+- [x] `docs/API.md`, `docs/Database.md`, `docs/Features.md`,
+      `docs/Roadmap.md`, `docs/Security.md` updated
+- [ ] Databases/Cron/Backups REST endpoints - **not built in this pass**,
+      disclosed gap, see docs/API.md/Features.md
+- [ ] Backup-succeeded/failed and SSL-expiring-soon webhook events, generated
+      OpenAPI spec - **not built**, disclosed gaps
+
 ## Up Next
-- [ ] Module 17 — API (see docs/Roadmap.md)
+- [ ] Module 18 — Multi Server (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

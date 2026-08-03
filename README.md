@@ -36,8 +36,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 14 | Logs — Laravel/nginx log tail & search, per-website and application-wide | ✅ |
 | 15 | Monitoring & alerts — historical charts, bandwidth, process list, threshold alerts | ✅ |
 | 16 | Notifications — Email/Telegram/Discord/Slack, self-service channels, wired to alerts + deployments | ✅ |
-| 17 | API (REST + tokens + webhooks) | ⬜ next |
-| 18 | Multi Server | ⬜ |
+| 17 | API — REST for auth/websites/deployments, scoped token abilities, HMAC-signed outbound webhooks | ✅ |
+| 18 | Multi Server | ⬜ next |
 | 19 | Docker | ⬜ |
 | 20 | AI Assistant | ⬜ |
 

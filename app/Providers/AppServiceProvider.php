@@ -22,8 +22,11 @@ use App\Policies\UserPolicy;
 use App\Policies\WebsitePolicy;
 use Filament\Auth\Events\Registered;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
@@ -59,5 +62,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Server::class, ServerPolicy::class);
 
         Gate::before(fn (User $user, string $ability): ?true => $user->hasRole('super-admin') ? true : null);
+
+        // Module 17's API: a generous default per-token limit, and a much
+        // stricter one on deploy-triggering endpoints specifically - see
+        // docs/API.md and docs/Security.md.
+        RateLimiter::for('api', fn (Request $request): Limit => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+
+        RateLimiter::for('deploy-api', fn (Request $request): Limit => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
     }
 }

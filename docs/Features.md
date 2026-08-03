@@ -308,9 +308,29 @@ module currently in progress.
   mail driver.
 
 ## Module 17 — API
-- [ ] Full REST API (see [API.md](API.md))
-- [ ] Token-based auth with scoped abilities
-- [ ] Outbound webhooks with HMAC signatures + retry
+- [x] REST API for auth self-service (tokens, current user, sessions) and
+      Websites (index/show/create/update/delete/suspend/clone) - see
+      [API.md](API.md) for the full endpoint table
+- [x] Token-based auth with scoped abilities - Sanctum's `ability:` middleware,
+      any-of semantics; the same Eloquent policies the Filament UI uses still
+      govern which records a token's owner can act on underneath
+- [x] Deployments REST API (trigger/list/rollback), rate-limited separately
+      and more strictly than the rest of the API (10/min vs 120/min)
+- [x] Outbound webhooks with HMAC signatures + retry - self-service
+      `webhook_endpoints` per user, queued delivery
+      (`App\Jobs\DispatchWebhookJob`, 5 tries, backoff up to 15 minutes),
+      currently firing on deployment succeeded/failed
+- [ ] Databases/Cron/Backups REST endpoints - **not built in this pass**;
+      Module 17 shipped a complete, tested vertical (auth + Websites +
+      Deployments + webhooks) rather than a shallow pass across every
+      resource. The controller-reuses-existing-Action pattern established
+      here makes adding the rest a low-risk, well-precedented follow-up -
+      see docs/API.md.
+- [ ] Backup-succeeded/failed and SSL-expiring-soon webhook events - **not
+      wired yet**; only the two deployment events fire today.
+- [ ] Generated OpenAPI spec - **not built**; the endpoint table in
+      docs/API.md serves as the spec for now, as originally noted as
+      optional for this module.
 
 ## Module 18 — Multi Server
 - [ ] Connect a remote server (SSH key exchange, health check)
