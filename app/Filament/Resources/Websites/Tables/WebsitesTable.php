@@ -168,6 +168,11 @@ class WebsitesTable
                     ->icon(Heroicon::OutlinedFolderOpen)
                     ->authorize(fn (Website $record): bool => auth()->user()->can('manageFiles', $record))
                     ->url(fn (Website $record): string => WebsiteResource::getUrl('files', ['record' => $record])),
+                Action::make('cloudflare')
+                    ->label('Cloudflare')
+                    ->icon(Heroicon::OutlinedCloud)
+                    ->authorize(fn (Website $record): bool => auth()->user()->can('update', $record))
+                    ->url(fn (Website $record): string => WebsiteResource::getUrl('cloudflare', ['record' => $record])),
                 EditAction::make(),
             ])
             ->headerActions([

@@ -308,6 +308,47 @@ generic `activity('terminal')` entry is only written for session-lifecycle event
 One new permission: `use terminal`, admin/super-admin only (see docs/Security.md
 and `ServerPolicy::useTerminal()`).
 
+## Module 9 — Cloudflare ✅ (as built)
+
+### `cloudflare_zones`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| website_id | fk websites, unique, cascadeOnDelete | one zone per website |
+| zone_id | string | Cloudflare's own zone identifier |
+| api_token | text, cast `encrypted` | this website's own Cloudflare API token - never a shared/global credential |
+| ssl_mode | string, cast to `App\Enums\CloudflareSslMode` default `flexible` | off/flexible/full/strict, mirrors Cloudflare's real setting values exactly |
+| last_synced_at | timestamp nullable | updated on connect and on a successful SSL mode change |
+| timestamps | | |
+
+### `cloudflare_tunnels`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| server_id | fk servers, cascadeOnDelete | tunnels are server-scoped, not website-scoped |
+| cloudflare_tunnel_id | string | Cloudflare's own tunnel identifier |
+| name | string | |
+| status | string, cast to `App\Enums\CloudflareTunnelStatus` default `inactive` | this app never sets it to `active` itself - see below |
+| timestamps | | |
+
+DNS records themselves are **not** persisted locally - they're fetched live from
+Cloudflare's API on every page load (`CloudflareZoneService::listDnsRecords()`),
+the same "the real system is the source of truth, don't mirror it and risk
+drift" principle as Module 7's live filesystem reads.
+
+`cloudflare_tunnels.status` starts and stays `inactive` through everything this
+module actually does - creating/destroying the tunnel *object* via Cloudflare's
+API never starts a real `cloudflared` connector process on the server, so no
+traffic ever flows through it yet. The enum has an `Active`/`Error` case ready
+for when a future module (or a manual admin action) actually manages that
+process; nothing in Module 9 sets it.
+
+Two new permissions: none for zones/DNS/SSL/cache (these reuse the existing
+`update websites` permission via `WebsitePolicy::update()` - a developer who can
+edit their own website can also manage its Cloudflare zone); `manage cloudflare
+tunnels` (admin/super-admin only, see `ServerPolicy::manageTunnels()`) for
+tunnels specifically, since a tunnel reaches the whole server, not one site.
+
 ## Forward-Looking Schema (sketched, subject to change per-module)
 
 ### `ssl_certificates` (Module 10)

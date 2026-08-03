@@ -10,6 +10,7 @@ use App\Enums\WebsiteStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
@@ -90,6 +91,11 @@ class Website extends Model
     public function deployments(): HasMany
     {
         return $this->hasMany(Deployment::class)->latest('id');
+    }
+
+    public function cloudflareZone(): HasOne
+    {
+        return $this->hasOne(CloudflareZone::class);
     }
 
     public function latestSuccessfulDeployment(): ?Deployment

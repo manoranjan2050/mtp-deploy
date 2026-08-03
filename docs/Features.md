@@ -152,12 +152,21 @@ module currently in progress.
       exact blocked command, anything else cancels it)
 
 ## Module 9 — Cloudflare
-- [ ] Connect API token
-- [ ] Create DNS record
-- [ ] Delete DNS record
-- [ ] Tunnel management (create/destroy/status)
-- [ ] SSL/TLS mode settings
-- [ ] Cache purge
+- [x] Connect API token (per-website zone ID + token, entered through the UI,
+      stored encrypted on `cloudflare_zones`)
+- [x] Create DNS record
+- [x] Delete DNS record
+- [x] Tunnel management (create/destroy; **status is Cloudflare-reported
+      metadata only** - see below) - account-scoped, admin/super-admin only,
+      on a dedicated `Cloudflare Tunnels` page (not per-website)
+- [x] SSL/TLS mode settings (Off/Flexible/Full/Full Strict)
+- [x] Cache purge (purge-everything; per-file purge supported at the service
+      layer, not yet exposed in the UI)
+- [ ] Actually running the `cloudflared` connector daemon on the server so a
+      created tunnel carries real traffic - **not built**; this module
+      orchestrates the tunnel *object* via Cloudflare's API and this panel's
+      own record of what it created, not the local connector process. See
+      CLAUDE.md.
 
 ## Module 10 — SSL
 - [ ] Let's Encrypt issuance

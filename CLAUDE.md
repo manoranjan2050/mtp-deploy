@@ -251,6 +251,39 @@ Two more Livewire/Alpine lessons this module surfaced:
    state. Any future one-time-setup JS bridge on a `wire:ignore` element needs
    this same plain-DOM idempotency guard.
 
+## Cloudflare (Module 9): the first module to deliberately break the real-infra testing rule
+
+Every module since Module 4 tested against genuine local infrastructure - real
+MySQL, real git, real composer, the real filesystem. Module 9 talks to
+Cloudflare, a third-party SaaS: there is no real Cloudflare account, zone, or API
+token anywhere in this dev environment, and unlike MySQL/git/composer, that's not
+something installable locally. `App\Services\Cloudflare\CloudflareApiClient`
+wraps Cloudflare's real REST API v4 via Laravel's `Http` facade; tests use
+`Http::fake()` responses shaped exactly like Cloudflare's real, documented
+envelope (`{success, errors, result}`). This proves the integration code is
+correct (request shape, bearer auth header, response parsing, error surfacing)
+but **cannot** prove a live account actually behaves this way. **Do one manual
+smoke test against a real Cloudflare zone before relying on this in
+production** - a disclosed, deliberate gap, not a silently-skipped one.
+
+Two scope decisions worth knowing before extending this module:
+1. DNS records are **not** persisted locally - `ManageCloudflare::dnsRecords()`
+   fetches them live from Cloudflare on every render, the same "don't mirror a
+   system that's already the source of truth" principle as Module 7's live
+   filesystem reads. Only the zone connection itself (`cloudflare_zones`) and
+   tunnel metadata (`cloudflare_tunnels`) are persisted.
+2. Cloudflare Tunnels are account-scoped in Cloudflare's own API model (not
+   zone/website-scoped), so they get their own account-level credential pair
+   (`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_ACCOUNT_API_TOKEN` in `config/services.php`)
+   separate from each website's own zone token, and their own admin-only page
+   (`App\Filament\Pages\CloudflareTunnels`) rather than living under a website.
+   Creating a tunnel here only calls Cloudflare's API to create the tunnel
+   *object* - it does not install or run the real `cloudflared` connector
+   daemon on the server, so a tunnel created through this panel carries no
+   traffic until that separate, unbuilt step happens. `cloudflare_tunnels.status`
+   is never set to `Active` by this module, honestly reflecting that gap rather
+   than faking a "connected" state.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

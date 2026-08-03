@@ -45,6 +45,11 @@ class Server extends Model
         return $this->hasMany(TerminalSession::class);
     }
 
+    public function cloudflareTunnels(): HasMany
+    {
+        return $this->hasMany(CloudflareTunnel::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

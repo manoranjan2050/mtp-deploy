@@ -16,7 +16,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 6 | Laravel Deployment (composer/artisan pipeline steps) | ✅ | 5 |
 | 7 | File Manager (browse/upload/download/zip/edit) | ✅ | 3 |
 | 8 | Terminal (browser SSH via xterm.js) | ✅ | 1 |
-| 9 | Cloudflare (DNS, tunnels, SSL, cache purge) | ⬜ | 3 |
+| 9 | Cloudflare (DNS, tunnels, SSL, cache purge) | ✅ | 3 |
 | 10 | SSL (Let's Encrypt, renewal, custom certs, wildcard) | ⬜ | 3, 9 |
 | 11 | Cron Manager | ⬜ | 3 |
 | 12 | Queue Manager (Supervisor) | ⬜ | 3, 6 |
@@ -30,7 +30,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 9 — Cloudflare.** Modules 1–8 are complete - 128 passing tests, Pint
+**Module 10 — SSL.** Modules 1–9 are complete - 148 passing tests, Pint
 clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
@@ -67,6 +67,20 @@ Alpine component can have its `x-init` invoked more than once for the same DOM
 element (Livewire's morph hook and Alpine's own observer can both process an
 inserted node), so any one-time-setup JS bridge needs its own idempotency guard at
 the plain-DOM level, not just inside Alpine's `x-data` state.
+
+**Module 9 (Cloudflare) is the first module to break the "real infrastructure over
+mocks" testing pattern used since Module 4** - and deliberately so. Cloudflare is a
+third-party SaaS requiring a real paid/free account, a real domain zone, and real
+API credentials that simply don't exist in this dev environment (unlike MySQL,
+git, composer, or the local filesystem, none of which needed anyone's account to
+stand up locally). Tests use `Http::fake()` against Cloudflare's real, documented
+API v4 request/response shapes (the `{success, errors, result}` envelope) instead -
+honest about testing the integration code's correctness, not a live account
+round-trip. See CLAUDE.md for the full reasoning and the standing recommendation
+to do one manual smoke test against a real zone before relying on this in
+production. Tunnels only orchestrate the Cloudflare-side tunnel *object* - actually
+running the `cloudflared` connector daemon on the server (so real traffic flows
+through it) is a deliberate scope gap, also documented in CLAUDE.md.
 
 Checklist items deliberately deferred, not forgotten:
 - Module 3's "Website logs" - real log tailing is Module 14's job.

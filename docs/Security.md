@@ -99,6 +99,35 @@ model. Security-relevant constraints, restated:
   a real (if narrow) capability gap versus a genuine SSH session, not a security
   gap - each command still runs as a fresh process under the same trust boundary.
 
+## Cloudflare (Module 9, as built)
+- Every website's Cloudflare API token is entered per-website through the UI and
+  stored **encrypted** on `cloudflare_zones.api_token` (Laravel's `encrypted`
+  cast) - never a single shared/global credential covering every managed site.
+  This limits the blast radius of a compromised token to that one website's zone.
+- Zone/DNS/SSL/cache actions are gated behind the existing `WebsitePolicy::update()`
+  ability, not a new permission - a developer who can already edit their own
+  website can also manage its Cloudflare zone (the same trust level as toggling
+  SSL or triggering a deployment, both already `update`-gated). Tunnels are a
+  separate, stricter case: `ServerPolicy::manageTunnels()` (admin/super-admin
+  only, new `manage cloudflare tunnels` permission), since a tunnel reaches the
+  whole server, not one site - mirroring `useTerminal()`'s reasoning from Module 8.
+- **This dev environment has no real Cloudflare account/zone/API token** -
+  unlike every module since Module 4, which exercised genuine local
+  infrastructure, Cloudflare is a third-party SaaS requiring real credentials
+  this environment doesn't have. `CloudflareApiClient` is tested against
+  `Http::fake()` responses shaped exactly like Cloudflare's real, documented API
+  v4 envelope (`{success, errors, result}`), which proves the integration code's
+  correctness (request shape, auth header, response parsing, error surfacing) but
+  **not** a live account round-trip. Treat this module as needing one manual
+  smoke test against a real zone before production use - a deliberate, disclosed
+  gap, not a silently-skipped one.
+- Tunnel creation/destruction only orchestrates the Cloudflare-side tunnel
+  *object* - it does not install or run the real `cloudflared` connector
+  process on the server. A tunnel created here carries no traffic until that
+  connector is actually started, exactly like a real Cloudflare tunnel with no
+  connector attached; `cloudflare_tunnels.status` reflects this honestly by
+  never being set to `Active` by this module.
+
 ## File Manager / Uploads (Module 7, as built)
 - Every operation is scoped to one website's `document_root` via
   `App\Services\FileManager\FileManagerService`, the only class that touches a

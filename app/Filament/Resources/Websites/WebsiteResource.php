@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Websites;
 use App\Filament\Resources\Websites\Pages\CreateWebsite;
 use App\Filament\Resources\Websites\Pages\EditWebsite;
 use App\Filament\Resources\Websites\Pages\ListWebsites;
+use App\Filament\Resources\Websites\Pages\ManageCloudflare;
 use App\Filament\Resources\Websites\Pages\ManageFiles;
 use App\Filament\Resources\Websites\Schemas\WebsiteForm;
 use App\Filament\Resources\Websites\Tables\WebsitesTable;
@@ -69,6 +70,7 @@ class WebsiteResource extends Resource
             'create' => CreateWebsite::route('/create'),
             'edit' => EditWebsite::route('/{record}/edit'),
             'files' => ManageFiles::route('/{record}/files'),
+            'cloudflare' => ManageCloudflare::route('/{record}/cloudflare'),
         ];
     }
 

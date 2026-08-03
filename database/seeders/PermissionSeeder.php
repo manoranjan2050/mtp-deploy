@@ -34,6 +34,7 @@ class PermissionSeeder extends Seeder
         'delete databases',
         'manage database privileges',
         'use terminal',
+        'manage cloudflare tunnels',
     ];
 
     public function run(): void

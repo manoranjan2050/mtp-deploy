@@ -41,6 +41,7 @@ class RoleSeeder extends Seeder
             'delete databases',
             'manage database privileges',
             'use terminal',
+            'manage cloudflare tunnels',
         ]);
 
         // Developer manages websites they created (scoped in WebsitePolicy, not

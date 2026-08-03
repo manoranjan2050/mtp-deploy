@@ -689,6 +689,83 @@ special-cased so directory navigation still feels continuous across commands.
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md`
       updated
 
+## Done — Module 9: Cloudflare
+
+The first module to deliberately break the "real infrastructure over mocks"
+testing pattern used since Module 4 - Cloudflare is a third-party SaaS needing
+real account credentials this dev environment doesn't have. See CLAUDE.md for
+the full reasoning; tests use `Http::fake()` against Cloudflare's real,
+documented API v4 shapes instead. **A manual smoke test against a real
+Cloudflare zone is recommended before production use** - a disclosed gap.
+
+### Schema
+- [x] `cloudflare_zones` (website_id unique, zone_id, api_token encrypted,
+      ssl_mode, last_synced_at) - one zone per website, each with its own token
+- [x] `cloudflare_tunnels` (server_id, cloudflare_tunnel_id, name, status) -
+      account-scoped in Cloudflare's model, so server-scoped here, not
+      website-scoped
+- [x] `App\Enums\CloudflareSslMode` (off/flexible/full/strict - matches
+      Cloudflare's real setting values exactly), `App\Enums\CloudflareTunnelStatus`
+      (active/inactive/error - never set to Active by this module, see below)
+- DNS records are **not** persisted - fetched live from Cloudflare on every
+  page load, same principle as Module 7's live filesystem reads
+
+### Backend
+- [x] `App\Services\Cloudflare\CloudflareApiClient` - thin wrapper over
+      Cloudflare's real REST API v4 (`Http::withToken()`, the
+      `{success, errors, result}` envelope), covering DNS list/create/delete,
+      SSL mode update, cache purge, tunnel list/create/delete
+- [x] `App\Services\Cloudflare\CloudflareZoneService` - per-website zone
+      orchestration (connect/disconnect/DNS/SSL/purge), each website using its
+      own stored token
+- [x] `App\Services\Cloudflare\CloudflareTunnelService` - account-scoped
+      tunnel object orchestration only; **does not install or run the real
+      `cloudflared` connector daemon** - a tunnel created here carries no
+      traffic until that separate, unbuilt step happens
+- [x] 8 Actions (Connect/DisconnectCloudflareZone, Create/DeleteDnsRecord,
+      UpdateSslMode, PurgeCache, Create/DestroyTunnel), each logging one
+      `activity('cloudflare')` entry
+- [x] Zone/DNS/SSL/cache actions reuse the existing `WebsitePolicy::update()`
+      ability (no new permission - same trust level as toggling SSL or
+      deploying); `ServerPolicy::manageTunnels()` (new `manage cloudflare
+      tunnels` permission, admin/super-admin only) for tunnels specifically
+
+### Filament / UI
+- [x] `App\Filament\Resources\Websites\Pages\ManageCloudflare` - per-website
+      custom page: connect form when no zone exists, then zone info/SSL
+      mode/purge/disconnect plus a live DNS records table with add/delete
+- [x] `App\Filament\Pages\CloudflareTunnels` - a separate, admin-only page
+      (not per-website) for account-level tunnel create/destroy, with UI copy
+      that's upfront about the connector-daemon gap
+- [x] `WebsitesTable` gets a "Cloudflare" row action linking to the new page
+
+### Tests (`tests/Unit/Services/Cloudflare/`, `tests/Feature/Cloudflare/`, 20 new)
+- [x] `CloudflareApiClientTest` - `Http::fake()` against Cloudflare's real
+      response shapes: list/create/delete DNS records, update SSL mode, purge
+      cache, and a failed-request case asserting the real error message is
+      surfaced
+- [x] `CloudflareTunnelServiceTest` - create persists a local row only on
+      success, destroy removes it, a failed API call leaves no orphaned row
+- [x] `CloudflareActionsTest` - every Action end-to-end plus policy scoping
+      (developer can connect a zone on their own site, not another's; only
+      admin can manage tunnels)
+- [x] `ManageCloudflarePageTest`, `CloudflareTunnelsPageTest` - the real
+      Livewire pages: connect flow, authorization denial (viewer/developer
+      forbidden), create/destroy a tunnel end-to-end
+
+### Wrap-up
+- [x] `php artisan test` green (148 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] Manually verified in browser: connected a zone through the real UI
+      (zone ID + a placeholder token - safe, since `connect()` only writes to
+      the local DB, no API call happens until DNS records are listed), saw
+      the zone management UI render with an honest "no records found" state
+      once the real (but fake-token) Cloudflare API call correctly failed,
+      and confirmed the Cloudflare Tunnels admin page renders with no
+      console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md`
+      updated
+
 ## Up Next
-- [ ] Module 9 — Cloudflare (see docs/Roadmap.md)
+- [ ] Module 10 — SSL (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

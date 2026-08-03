@@ -19,4 +19,14 @@ class ServerPolicy
     {
         return $user->can('use terminal');
     }
+
+    /**
+     * Same reasoning as useTerminal(): a tunnel exposes the whole server, not
+     * one site, so this is admin/super-admin only regardless of who created
+     * which website on it.
+     */
+    public function manageTunnels(User $user, Server $server): bool
+    {
+        return $user->can('manage cloudflare tunnels');
+    }
 }
