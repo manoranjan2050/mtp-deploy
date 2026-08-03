@@ -349,6 +349,25 @@ repo a website might be deployed from. `-c user.name=`/`-c user.email=` are
 passed per-invocation rather than relying on system-wide git config, so this
 works on a fresh server with no git identity configured yet.
 
+## Cron Manager (Module 11): reused a transitive dependency instead of adding one
+
+`dragonmantank/cron-expression` was already present via `laravel/framework`'s
+own scheduler internals (`composer show dragonmantank/cron-expression`
+confirms it) - no new Composer dependency needed for real cron expression
+validation/next-run-date calculation. Check `composer show <package>` before
+adding anything that Laravel's scheduler might already pull in transitively.
+
+`SystemCrontabService::sync()` writes every *enabled* `CronJob` into the
+real system crontab, but only inside a clearly-marked block
+(`CrontabContentBuilder::BEGIN_MARKER`/`END_MARKER`) - anything a server
+admin (or another tool) added to crontab by hand outside that block is
+preserved verbatim on every sync, never clobbered. This is genuinely
+untestable end-to-end on this Windows dev box (no `crontab` binary at all),
+so `CrontabContentBuilder` (the pure string-generation half) is fully unit
+tested for real, while `SystemCrontabServiceTest` only asserts the honest
+failure path here - same split as `NginxConfigGeneratorService`/
+`WebsiteProvisioningService` in Module 3.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

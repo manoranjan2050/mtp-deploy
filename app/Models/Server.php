@@ -50,6 +50,11 @@ class Server extends Model
         return $this->hasMany(CloudflareTunnel::class);
     }
 
+    public function cronJobs(): HasMany
+    {
+        return $this->hasMany(CronJob::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

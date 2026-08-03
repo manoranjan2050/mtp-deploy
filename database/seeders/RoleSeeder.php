@@ -42,6 +42,7 @@ class RoleSeeder extends Seeder
             'manage database privileges',
             'use terminal',
             'manage cloudflare tunnels',
+            'manage cron jobs',
         ]);
 
         // Developer manages websites they created (scoped in WebsitePolicy, not

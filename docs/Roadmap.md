@@ -18,7 +18,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 8 | Terminal (browser SSH via xterm.js) | ✅ | 1 |
 | 9 | Cloudflare (DNS, tunnels, SSL, cache purge) | ✅ | 3 |
 | 10 | SSL (Let's Encrypt, renewal, custom certs, wildcard) | ✅ | 3, 9 |
-| 11 | Cron Manager | ⬜ | 3 |
+| 11 | Cron Manager | ✅ | 3 |
 | 12 | Queue Manager (Supervisor) | ⬜ | 3, 6 |
 | 13 | Backups (site + database, scheduled) | ✅ | 3, 4 |
 | 14 | Logs (Laravel/PHP/nginx/MariaDB, search) | ⬜ | 3 |
@@ -30,10 +30,9 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 11 — Cron Manager.** Modules 1–10 and 13 are complete - 186 passing
+**Module 12 — Queue Manager.** Modules 1–11 and 13 are complete - 208 passing
 tests, Pint clean. Module 13 (Backups) was built ahead of 11/12 at the user's
-explicit request; Cron Manager and Queue Manager remain next in the original
-order. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
+explicit request. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
 project keeps hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a

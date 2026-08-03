@@ -380,9 +380,26 @@ the whole installation, not per-website) are stored as plain files at
 `storage/app/acme/account-key.pem` / `account-url.txt`, not in this table -
 they're infrastructure for talking to the ACME server, not a certificate record.
 
-### `cron_jobs` (Module 11)
-id, server_id, website_id nullable, label, command, schedule (cron expression),
-is_enabled, last_run_at, last_exit_code, timestamps.
+## Module 11 — Cron Manager ✅ (as built)
+
+### `cron_jobs`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| server_id | fk servers, cascadeOnDelete | |
+| website_id | fk websites, nullable, cascadeOnDelete | optional - a job can be tied to a site for organization, or server-wide |
+| created_by | fk users, nullable, nullOnDelete | |
+| label | string | |
+| command | text | run via `Process::fromShellCommandline()`, same as Terminal |
+| schedule | string | a standard 5-field cron expression, validated via `App\Rules\ValidCronExpression` (`dragonmantank/cron-expression`, already a transitive Laravel dependency - no new package needed) |
+| is_enabled | bool default true | disabled jobs are excluded from the real crontab sync entirely |
+| last_run_at / last_exit_code / last_output | timestamp/int/longtext, all nullable | updated by both "Run now" and (once cron actually fires it) the real scheduled execution |
+| timestamps | | |
+
+New permission: `manage cron jobs` (admin/super-admin only, see
+`ServerPolicy::manageCronJobs()`) - a cron job is arbitrary command execution
+on a schedule with no confirmation step at run time, the same trust level as
+Module 8's Terminal, not delegated to the `developer` role.
 
 ### `queue_workers` (Module 12)
 id, website_id, connection, queue, processes, status (enum: running/stopped/failed),

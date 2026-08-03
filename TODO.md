@@ -846,6 +846,29 @@ Also built at the user's explicit request, outside the numbered module list:
 - [x] `README.md` rewritten with a per-module status table and highlights
 - [x] `php artisan test` green (191 passed, 1 skipped), `vendor/bin/pint` clean
 
+## Done — Module 11: Cron Manager
+
+- [x] `cron_jobs` schema, real cron expression validation via
+      `dragonmantank/cron-expression` (already a transitive Laravel
+      dependency - no new package installed)
+- [x] `CrontabContentBuilder` (pure, fully testable) wraps every enabled job
+      in a clearly-marked block; `SystemCrontabService` syncs it into the
+      real system crontab (`crontab -l`/`crontab -`) - honestly unavailable
+      on this Windows dev box (no `crontab` binary), same principle as
+      Module 2's `SystemMetricsService`
+- [x] `CronJobRunnerService` - real one-shot process execution for "Run now",
+      same pattern as Module 8's Terminal
+- [x] Create/Update/Delete/Toggle/RunNow Actions, each syncing the crontab
+      afterward and logging `activity('cron')`
+- [x] `ServerPolicy::manageCronJobs()` (new `manage cron jobs` permission,
+      admin/super-admin only - same trust level as Terminal)
+- [x] `CronJobs` Filament page (create form with live validation, run-now,
+      toggle enabled/disabled, delete)
+- [x] `php artisan test` green (208 passed, 1 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: created a real cron job, ran it via "Run
+      now" and confirmed exit code 0 recorded, no console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md` updated
+
 ## Up Next
-- [ ] Module 11 — Cron Manager (see docs/Roadmap.md)
+- [ ] Module 12 — Queue Manager (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md

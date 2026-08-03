@@ -30,9 +30,9 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 8 | Terminal — browser shell (xterm.js), dangerous-command guard | ✅ |
 | 9 | Cloudflare — DNS, tunnels, SSL mode, cache purge | ✅ |
 | 10 | SSL — Let's Encrypt (ACME v2), custom certs, auto-renewal, wildcard | ✅ |
+| 11 | Cron Manager — real crontab sync, run-now, cron expression validation | ✅ |
 | 13 | Backups — files + database + git snapshots, scheduled, restore | ✅ |
-| 11 | Cron Manager | ⬜ next |
-| 12 | Queue Manager (Supervisor) | ⬜ |
+| 12 | Queue Manager (Supervisor) | ⬜ next |
 | 14 | Logs (Laravel/PHP/nginx/MariaDB) | ⬜ |
 | 15 | Monitoring & alerts | ⬜ |
 | 16 | Notifications (Telegram/Email/Discord/Slack) | ⬜ |

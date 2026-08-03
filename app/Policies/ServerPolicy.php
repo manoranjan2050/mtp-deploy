@@ -29,4 +29,14 @@ class ServerPolicy
     {
         return $user->can('manage cloudflare tunnels');
     }
+
+    /**
+     * Same reasoning again: a cron job is an arbitrary command executed on a
+     * schedule with no confirmation step at run time - the same trust level
+     * as Terminal, not something delegated to the developer role.
+     */
+    public function manageCronJobs(User $user, Server $server): bool
+    {
+        return $user->can('manage cron jobs');
+    }
 }

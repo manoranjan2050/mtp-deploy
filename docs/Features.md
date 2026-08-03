@@ -184,9 +184,18 @@ module currently in progress.
       redirect once a website's SSL status is Active
 
 ## Module 11 — Cron Manager
-- [ ] Create / Edit / Delete cron entries
-- [ ] Run Now (ad-hoc execution)
-- [ ] Run history with output
+- [x] Create / Edit / Delete cron entries (real cron expression validation via
+      `dragonmantank/cron-expression`, already a transitive Laravel dependency)
+- [x] Run Now (ad-hoc execution) - a genuine one-shot process run, same
+      pattern as Module 8's Terminal
+- [x] Run history with output - `last_run_at`/`last_exit_code`/`last_output`
+      per job (one row per job, not a full run log table - a deliberate
+      simplification; see docs/Roadmap.md)
+- [x] Every enabled job is synced into the server's **real** system crontab
+      under a clearly-marked block, never touching anything a human or
+      another tool added by hand outside it - **honestly unavailable on this
+      Windows dev box** (no `crontab` binary), same "never fake server state"
+      principle as Module 2's `SystemMetricsService`
 
 ## Module 12 — Queue Manager
 - [ ] Supervisor program generation per website/queue
