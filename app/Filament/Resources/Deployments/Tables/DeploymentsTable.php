@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Deployments\Tables;
 use App\Actions\Deployments\RollbackDeploymentAction;
 use App\Enums\DeploymentStatus;
 use App\Models\Deployment;
+use App\Services\AiAssistant\AiAssistantService;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
@@ -65,6 +66,33 @@ class DeploymentsTable
                             ->title($rollback->status === DeploymentStatus::RolledBack ? 'Rolled back' : 'Rollback failed')
                             ->success($rollback->status === DeploymentStatus::RolledBack)
                             ->danger($rollback->status !== DeploymentStatus::RolledBack)
+                            ->send();
+                    }),
+                Action::make('explainWithAi')
+                    ->label('Explain with AI')
+                    ->icon(Heroicon::OutlinedSparkles)
+                    ->color('gray')
+                    ->visible(fn (Deployment $record): bool => $record->status === DeploymentStatus::Failed)
+                    ->authorize(fn (): bool => auth()->user()->can('use ai assistant'))
+                    ->action(function (Deployment $record): void {
+                        $result = app(AiAssistantService::class)->ask(
+                            'You are a senior DevOps engineer helping triage a failed deployment. '
+                            .'Explain briefly why it likely failed and suggest a concrete next step. Be concise.',
+                            "Deployment log for {$record->website->domain} (branch {$record->branch}):\n\n{$record->log}",
+                        );
+
+                        activity('ai_assistant')
+                            ->causedBy(auth()->user())
+                            ->performedOn($record)
+                            ->withProperties(['successful' => $result->successful])
+                            ->log('explained a failed deployment');
+
+                        Notification::make()
+                            ->title($result->successful ? 'AI explanation' : 'AI Assistant unavailable')
+                            ->body($result->successful ? $result->text : $result->error)
+                            ->success($result->successful)
+                            ->warning(! $result->successful)
+                            ->persistent()
                             ->send();
                     }),
             ])

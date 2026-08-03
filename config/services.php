@@ -74,4 +74,22 @@ return [
         'base_url' => env('DOCKER_API_BASE_URL', 'http://localhost:2375'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI Assistant (Module 20)
+    |--------------------------------------------------------------------------
+    |
+    | Anthropic's Messages API (https://docs.anthropic.com/en/api/messages).
+    | Every prompt sent here leaves this server and is processed by a
+    | third-party AI provider - see docs/Security.md for what data that
+    | includes and who is allowed to trigger it.
+    |
+    */
+
+    'anthropic' => [
+        'base_url' => env('ANTHROPIC_API_BASE_URL', 'https://api.anthropic.com'),
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
+    ],
+
 ];

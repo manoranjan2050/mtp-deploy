@@ -364,6 +364,36 @@ model. Security-relevant constraints, restated:
   every request goes through typed method arguments to Docker's REST API
   (`DockerApiClient`), never a shelled-out `docker` CLI invocation.
 
+## AI Assistant (Module 20, as built — final module)
+- Gated by a new `use ai assistant` permission, admin/super-admin only - a
+  prompt sends real operational data to a third-party AI provider, the same
+  trust level as Terminal/Cron/Docker, not delegated to `developer`/`viewer`.
+- **Exactly what leaves this server, per entry point**: deployment
+  explanation sends the deployment's real `log` column (git/composer/artisan
+  command output, which could include environment-derived paths, but never
+  credentials - `.env` values are never included); the log-analysis entry
+  point sends up to 300 lines of the currently-viewed nginx/Laravel log
+  (which could contain client IPs, request paths, or application error
+  messages); the health-summary entry point sends CPU/memory/disk/load
+  percentages and active alert descriptions only, never raw process
+  listings or file contents. None of the three entry points send credentials,
+  API tokens, session data, or database contents.
+- `AiAssistantService` never throws on a missing key, a connection failure,
+  or an API error response - each is caught and returned as a plain
+  `AiAssistantResult(successful: false, error: ...)`, so a misconfigured or
+  temporarily-down AI provider degrades to an honest "unavailable" message
+  in the UI, never an uncaught exception or a fabricated response.
+- The `ANTHROPIC_API_KEY` is read from config/env only, never accepted as
+  request input - there is no way for an authenticated user to redirect a
+  prompt to a different API endpoint or inject a different key via the UI.
+- **This dev environment has no `ANTHROPIC_API_KEY` configured, and unlike
+  every other third-party integration in this project (Cloudflare, Docker,
+  Telegram/Discord/Slack) there is no free-tier or local way to even
+  smoke-test the request shape without a real, billed API key** - every test
+  uses `Http::fake()` against Anthropic's real, documented request/response
+  shape. A real key should be configured and one manual smoke test run
+  before relying on this in production - see docs/Features.md.
+
 ## Transport
 - Local dev runs over `http://localhost` for convenience; any real deployment must
   run behind HTTPS (the panel's own SSL, independent of the SSL the panel provisions

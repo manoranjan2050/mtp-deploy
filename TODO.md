@@ -1081,5 +1081,44 @@ Also built at the user's explicit request, outside the numbered module list:
   `ConnectionException` path. A real Docker Engine API endpoint should be
   used for one manual smoke test before production use.
 
-## Up Next
-- [ ] Module 20 — AI Assistant (final module, see docs/Roadmap.md)
+## Done — Module 20: AI Assistant (final module)
+
+- [x] `AiAssistantService` (real, not mocked) - genuine Anthropic Messages
+      API wrapper; honestly reports a missing API key, a real connection
+      failure, or an API error response, never fabricates a response
+- [x] Deployment failure triage - "Explain with AI" row action on failed
+      deployments (Module 5), sends the real deployment log
+- [x] Server health summary in plain English - "Summarize with AI" on the
+      Monitoring page (Module 15), sends real current metrics + active alerts
+- [x] Log anomaly analysis - "Analyze with AI" on the per-website log viewer
+      (Module 14), sends the currently-displayed real log content
+- [x] New `use ai assistant` permission (admin/super-admin only) - every
+      prompt sends real operational data to a third-party AI provider, the
+      same trust level as Terminal/Cron/Docker
+- [x] Wired into three *existing* pages rather than a new standalone page -
+      each entry point sends exactly the data already displayed there, no
+      parallel data-gathering code to drift out of sync
+- [x] `php artisan test` green (337 passed, 2 skipped), `vendor/bin/pint` clean
+- [x] Manually verified in browser: the Monitoring page's "Summarize with
+      AI" button correctly triggers a real notification reading "AI
+      Assistant unavailable: ANTHROPIC_API_KEY is not configured" (this dev
+      environment has no key set) - proves the honest-failure path renders
+      correctly end-to-end; no console errors
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`,
+      `docs/Security.md` updated
+- **This dev environment has no `ANTHROPIC_API_KEY` and, unlike every other
+  third-party integration in this project, there is no free tier or local
+  way to smoke-test the request shape at all without a real, billed key** -
+  every test uses `Http::fake()` or a real closed port for the connection-
+  failure case. A real key must be configured and one manual smoke test run
+  before relying on this in production.
+
+## All 20 modules complete
+
+337 passing tests, `vendor/bin/pint` clean across the whole codebase.
+Disclosed gaps remaining (not new modules, follow-up polish only):
+- Databases/Cron/Backups REST endpoints (Module 17)
+- Routing existing local-only services through SSH for non-local servers
+  (Module 18)
+- Docker Compose stack management (Module 19)
+- A real Anthropic API key + manual smoke test (Module 20)

@@ -587,6 +587,21 @@ New permission: `manage docker` (admin/super-admin only, via
 pulling an image reaches the whole server's Docker daemon, the same trust
 level as Terminal/Cron, not delegated to `developer`/`viewer`.
 
+## Module 20 — AI Assistant ✅ (as built) — final module
+
+No new table - each AI request is a stateless prompt/response round trip
+against Anthropic's real Messages API; nothing is cached or persisted
+beyond the standard activity log entry the deployment-explanation entry
+point writes (`activity('ai_assistant')`, same convention as every other
+module's audit trail).
+
+New permission: `use ai assistant` (admin/super-admin only) - every prompt
+sends real operational data (deployment logs, server metrics, application
+log excerpts) to a third-party AI provider, the same trust level as
+Terminal/Cron/Docker, not delegated to `developer`/`viewer`. See
+docs/Security.md for exactly what data each of the three wired entry points
+sends.
+
 ## Conventions
 - Every `*_id` foreign key has an explicit `->constrained()->cascadeOnDelete()` or
   `->nullOnDelete()`, chosen deliberately per relationship (never left implicit).

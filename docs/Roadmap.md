@@ -27,11 +27,17 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 17 | API (REST + tokens + webhooks) | ✅ | 1 |
 | 18 | Multi Server (remote server connections, groups) | ✅ | 2, 8 |
 | 19 | Docker (containers, images, compose) | ✅ | 18 |
-| 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
+| 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ✅ | 14, 15 |
 
 ## Current Focus
-**Module 20 — AI Assistant (final module).** Modules 1–19 are all complete -
-325 passing tests, Pint clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
+**All 20 modules complete.** 337 passing tests, Pint clean. See TODO.md for
+the full per-module history and every disclosed gap. Remaining work is
+follow-up polish, not new modules:
+- Databases/Cron/Backups REST endpoints (Module 17's disclosed gap)
+- Routing existing local-only services through SSH for non-local servers
+  (Module 18's disclosed gap)
+- Docker Compose stack management (Module 19's disclosed gap)
+- A real Anthropic API key + one manual smoke test (Module 20) See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
 project keeps hitting and fixing: Eloquent doesn't hydrate DB column defaults onto a

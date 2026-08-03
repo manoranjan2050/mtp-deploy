@@ -1,4 +1,15 @@
 <x-filament-panels::page>
+    @if ($this->canUseAiAssistant())
+        <x-filament::section heading="AI health summary">
+            <x-filament::button type="button" wire:click="aiHealthSummary" color="gray" size="sm">
+                Summarize with AI
+            </x-filament::button>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Sends current metrics and active alerts to the configured AI provider - see docs/Security.md.
+            </p>
+        </x-filament::section>
+    @endif
+
     <x-filament::section heading="Active alerts">
         @forelse ($this->activeAlerts() as $alert)
             <div wire:key="alert-{{ $alert->id }}" class="flex items-center justify-between border-b border-gray-100 py-2 last:border-b-0 dark:border-white/5">

@@ -35,6 +35,11 @@
             <x-filament::button type="button" wire:click="refresh" color="gray" size="sm">
                 Refresh
             </x-filament::button>
+            @if ($this->canUseAiAssistant())
+                <x-filament::button type="button" wire:click="analyzeWithAi" color="gray" size="sm">
+                    Analyze with AI
+                </x-filament::button>
+            @endif
         </div>
 
         <pre class="mt-4 max-h-[32rem] overflow-auto rounded-lg bg-gray-950 p-4 text-xs leading-5 text-gray-100"><code>{{ $this->logContent() !== '' ? $this->logContent() : '(empty)' }}</code></pre>

@@ -585,6 +585,35 @@ would have caught the same bug even without a real daemon, worth doing for
 any endpoint whose parameter placement (body vs. query string) isn't
 uniform.
 
+## AI Assistant (Module 20, final module): the one integration with no free tier at all
+
+Every prior third-party integration in this project (Cloudflare, Let's
+Encrypt, Telegram/Discord/Slack, Docker) had *some* way to reason about
+real-world behavior even without a live account - Docker's API is fully
+public documentation, Let's Encrypt has a public staging environment, and
+worst case a free developer account exists. Anthropic's Messages API has no
+free tier - there is no way to send even one real request without a billed
+API key, which this dev environment doesn't have. `ANTHROPIC_API_KEY`
+stayed unset throughout, and every test (including the "genuinely
+unreachable endpoint" case) uses either `Http::fake()` or a real closed
+local port, never a live call to `api.anthropic.com`. This is the most
+extreme case yet of the "disclosed, honest deviation" pattern established
+back in Module 9 - worth calling out explicitly in the module's docs rather
+than presenting the integration as equivalently verified to, say, Module 4's
+real MySQL/git/composer work.
+
+Chose to wire the AI Assistant into three *existing* pages (Deployments'
+table, Monitoring, per-website Logs) rather than building one new
+standalone "AI Assistant" page from scratch. Each entry point sends exactly
+the real data already displayed on that page (a deployment's log, current
+metrics/alerts, the currently-viewed log tail) - no new data-gathering
+code, no risk of the AI feature silently drifting out of sync with what a
+human sees in the same UI. This is the same "reuse the existing service/
+Action, don't build a parallel path" principle used for the REST API in
+Module 17 (its controllers call the exact same Actions the Filament forms
+call), applied one level up at the integration-point-selection stage
+instead of the code-reuse stage.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

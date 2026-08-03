@@ -8,7 +8,9 @@ use App\DTOs\Monitoring\ProcessData;
 use App\Models\Alert;
 use App\Models\Server;
 use App\Models\SystemMetricSnapshot;
+use App\Services\AiAssistant\AiAssistantService;
 use App\Services\Monitoring\ProcessListService;
+use App\Services\System\SystemMetricsService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -152,5 +154,35 @@ class Monitoring extends Page
         unset($this->activeAlerts, $this->recentResolvedAlerts);
 
         Notification::make()->title('Alert resolved')->success()->send();
+    }
+
+    public function canUseAiAssistant(): bool
+    {
+        return auth()->user()->can('use ai assistant');
+    }
+
+    public function aiHealthSummary(): void
+    {
+        abort_unless($this->canUseAiAssistant(), 403);
+
+        $metrics = app(SystemMetricsService::class)->capture();
+        $alerts = $this->activeAlerts()->map(fn (Alert $alert): string => "{$alert->metric->getLabel()}: {$alert->triggered_value_percent}% (threshold {$alert->threshold_percent}%)")->implode("\n") ?: 'none';
+
+        $prompt = $metrics->isSupported
+            ? "CPU: {$metrics->cpuUsagePercent}%\nMemory: {$metrics->memoryUsagePercent()}%\nDisk: {$metrics->diskUsagePercent()}%\nLoad: {$metrics->load1min}/{$metrics->load5min}/{$metrics->load15min}\nActive alerts:\n{$alerts}"
+            : 'Live metrics are unsupported on this host ('.PHP_OS_FAMILY.").\nActive alerts:\n{$alerts}";
+
+        $result = app(AiAssistantService::class)->ask(
+            'You are a server operations assistant. Summarize this server\'s current health in 2-3 plain-English sentences for a non-expert. Flag anything concerning.',
+            $prompt,
+        );
+
+        Notification::make()
+            ->title($result->successful ? 'AI health summary' : 'AI Assistant unavailable')
+            ->body($result->successful ? $result->text : $result->error)
+            ->success($result->successful)
+            ->warning(! $result->successful)
+            ->persistent()
+            ->send();
     }
 }

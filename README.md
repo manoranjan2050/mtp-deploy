@@ -18,6 +18,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 
 ## What's built
 
+**All 20 planned modules are complete.**
+
 | # | Module | Status |
 |---|---|:---:|
 | 1 | Authentication — login, 2FA, roles/permissions, sessions, API tokens, activity log | ✅ |
@@ -39,10 +41,17 @@ See [docs/Vision.md](docs/Vision.md) for the full mission, target users, and non
 | 17 | API — REST for auth/websites/deployments, scoped token abilities, HMAC-signed outbound webhooks | ✅ |
 | 18 | Multi Server — add/manage remote servers, real SSH connectivity via phpseclib, tag-based groups | ✅ |
 | 19 | Docker — container/image management via the Docker Engine API | ✅ |
-| 20 | AI Assistant | ⬜ next |
+| 20 | AI Assistant — deployment triage, server health summaries, and log analysis via Claude | ✅ |
 
 Full module order and depends-on graph: [docs/Roadmap.md](docs/Roadmap.md). Live,
 granular in-progress checklist: [TODO.md](TODO.md).
+
+A few things are intentionally deferred as disclosed, documented follow-ups
+rather than half-built inside these modules — Databases/Cron/Backups REST
+endpoints, remote-server execution over SSH for the existing local-only
+services, Docker Compose stack management, and a real Anthropic API key for
+Module 20. See each module's section in [docs/Features.md](docs/Features.md)
+for the specifics.
 
 **Already-built extras beyond the original spec:** an About page with live
 update-checking against this repo, and a one-shot `install.sh` for a fresh

@@ -6,8 +6,10 @@ namespace App\Filament\Resources\Websites\Pages;
 
 use App\Filament\Resources\Websites\WebsiteResource;
 use App\Models\Website;
+use App\Services\AiAssistant\AiAssistantService;
 use App\Services\Logs\LogFileReaderService;
 use App\Services\Logs\WebsiteLogSourceResolver;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Livewire\Attributes\Computed;
@@ -79,5 +81,32 @@ class ManageLogs extends Page
     public function refresh(): void
     {
         unset($this->logContent);
+    }
+
+    public function canUseAiAssistant(): bool
+    {
+        return auth()->user()->can('use ai assistant');
+    }
+
+    public function analyzeWithAi(): void
+    {
+        abort_unless($this->canUseAiAssistant(), 403);
+
+        $content = $this->logContent();
+
+        $result = app(AiAssistantService::class)->ask(
+            'You are a site-reliability engineer reviewing a log excerpt. '
+            .'Point out any errors or anomalies and suggest a likely cause. Be concise. '
+            .'If nothing looks wrong, say so plainly.',
+            "Log source: {$this->activeSource}\n\n{$content}",
+        );
+
+        Notification::make()
+            ->title($result->successful ? 'AI log analysis' : 'AI Assistant unavailable')
+            ->body($result->successful ? $result->text : $result->error)
+            ->success($result->successful)
+            ->warning(! $result->successful)
+            ->persistent()
+            ->send();
     }
 }

@@ -47,6 +47,7 @@ class RoleSeeder extends Seeder
             'manage monitoring alerts',
             'manage servers',
             'manage docker',
+            'use ai assistant',
         ]);
 
         // Developer manages websites they created (scoped in WebsitePolicy, not

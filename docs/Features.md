@@ -375,8 +375,33 @@ module currently in progress.
   should be used for one manual smoke test before relying on this in
   production.
 
-## Module 20 — AI Assistant
-- [ ] Explain an error (paste or auto-attached log excerpt)
-- [ ] Deployment failure triage suggestions
-- [ ] Server health summary in plain English
-- [ ] Log anomaly analysis
+## Module 20 — AI Assistant (final module)
+- [x] `AiAssistantService` - real wrapper over Anthropic's Messages API
+      (https://docs.anthropic.com/en/api/messages), honestly reports a
+      missing API key, a real connection failure, or an API error response
+      rather than ever fabricating a response
+- [x] Deployment failure triage suggestions - "Explain with AI" row action
+      on failed deployments (Module 5's Deployments table), sends the
+      deployment's real log content
+- [x] Server health summary in plain English - "Summarize with AI" on
+      Module 15's Monitoring page, sends real current metrics + active
+      alerts
+- [x] Log anomaly analysis - "Analyze with AI" on Module 14's per-website
+      log viewer, sends the currently-displayed real log tail/search content
+- [x] "Explain an error (paste or auto-attached log excerpt)" is covered by
+      the log-analysis entry point above (the currently viewed log excerpt
+      is auto-attached) - no separate paste-your-own-error box was built,
+      since the three wired entry points already cover pasting via viewing
+      a log/deployment first
+- Gated by a new `use ai assistant` permission (admin/super-admin only) -
+  every prompt sends real operational data to a third-party AI provider,
+  see docs/Security.md for exactly what each entry point sends
+- **This dev environment has no `ANTHROPIC_API_KEY` configured, and unlike
+  every other third-party integration in this project there is no free/local
+  way to even smoke-test the request shape without a real, billed key** -
+  every test uses `Http::fake()` against Anthropic's real, documented
+  request/response shape, and one test hits a real closed port to prove the
+  connection-failure path is honest. Manually verified in-browser that the
+  "not configured" message renders correctly via a real notification when
+  no key is present. A real Anthropic API key should be configured and one
+  manual smoke test run before relying on this in production.

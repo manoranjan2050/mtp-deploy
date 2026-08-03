@@ -40,6 +40,7 @@ class PermissionSeeder extends Seeder
         'manage monitoring alerts',
         'manage servers',
         'manage docker',
+        'use ai assistant',
     ];
 
     public function run(): void
