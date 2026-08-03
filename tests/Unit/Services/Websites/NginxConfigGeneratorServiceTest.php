@@ -34,6 +34,23 @@ class NginxConfigGeneratorServiceTest extends TestCase
         $this->assertStringNotContainsString('return 503', $config);
     }
 
+    public function test_server_name_deduplicates_an_alias_that_repeats_the_domain(): void
+    {
+        // Confirmed live: a website created with its own domain also entered
+        // in the aliases field produced `server_name example.com example.com;`,
+        // which nginx flags as a "conflicting server name ... ignored"
+        // warning on every reload - harmless to routing, but a real config
+        // bug worth not emitting in the first place.
+        $website = $this->makeWebsite([
+            'domain' => 'example.com',
+            'aliases' => ['example.com', 'www.example.com'],
+        ]);
+
+        $config = app(NginxConfigGeneratorService::class)->generate($website);
+
+        $this->assertStringContainsString('server_name example.com www.example.com;', $config);
+    }
+
     public function test_laravel_website_serves_from_the_public_subdirectory(): void
     {
         $website = $this->makeWebsite([

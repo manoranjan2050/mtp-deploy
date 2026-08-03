@@ -37,6 +37,7 @@ class NginxConfigGeneratorService
     private function generateActive(Website $website): string
     {
         $serverNames = collect([$website->domain, ...($website->aliases ?? [])])
+            ->unique()
             ->implode(' ');
 
         $socket = "/var/run/php/php{$website->php_version}-fpm.sock";
@@ -130,6 +131,7 @@ class NginxConfigGeneratorService
     private function generateSuspended(Website $website): string
     {
         $serverNames = collect([$website->domain, ...($website->aliases ?? [])])
+            ->unique()
             ->implode(' ');
 
         return <<<NGINX
