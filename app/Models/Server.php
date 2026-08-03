@@ -40,6 +40,11 @@ class Server extends Model
         return $this->hasMany(Website::class);
     }
 
+    public function terminalSessions(): HasMany
+    {
+        return $this->hasMany(TerminalSession::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

@@ -203,6 +203,54 @@ Also: a typed class constant (`private const int NAME = ...`) is PHP 8.3+ syntax
 and fails to parse on this machine's PHP 8.2.31 - caught immediately by `php -l`,
 not by any test. Drop the type (`private const NAME = ...`) on this codebase.
 
+## Terminal (Module 8): why it's one-shot commands, not a real PTY
+
+A true interactive browser terminal (real keystroke-by-keystroke PTY, live shell
+environment, tab completion) needs a long-lived process manager living outside
+PHP-FPM/`artisan serve`'s normal request-response lifecycle - typically a Node
+sidecar with `node-pty`, or a full WebSocket daemon bridging raw terminal I/O. That
+infrastructure is out of proportion for what's buildable and genuinely testable in
+this single-machine dev environment without a separate always-on process.
+
+Instead, `App\Services\Terminal\TerminalCommandService::execute()` runs each
+submitted line as its own fresh `Symfony\Process` (via
+`Process::fromShellCommandline()`, deliberately - real shell semantics like `&&`,
+pipes, and redirects are expected here, unlike `SystemCommandService`'s
+whitelisted-array-args model), with `cd` specially intercepted to update the
+session's stored `current_directory` in the database rather than spawning a
+process - this is what makes navigating directories feel continuous across
+one-shot commands. **Known, honest limitation**: no environment variable persists
+between commands (`export FOO=bar` then a later command reading `$FOO` won't see
+it) - this is a real capability gap versus genuine SSH, not a bug, and is
+documented in the panel's own UI copy on the Terminal page.
+
+`DangerousCommandGuard`'s regex list must **never** actually be executed for real
+in a test, even under `confirmed: true` - `TerminalCommandServiceTest` proves the
+confirmation-bypass behavior using `DROP DATABASE production` specifically because
+"DROP" isn't a real executable on any OS's PATH (fails harmlessly with "command not
+found"), never a genuinely destructive shell primitive like `rm -rf` or the fork
+bomb pattern, which would actually damage the test machine (or a CI runner) if
+actually run.
+
+Two more Livewire/Alpine lessons this module surfaced:
+1. The `#[Computed]`-not-a-public-property rule from Module 7 isn't limited to
+   custom DTOs - a public property holding an **array of Eloquent models** hit the
+   same serialization wall. `Terminal::$openSessions` had to become a
+   `#[Computed]` method for the same reason `ManageFiles::entries()` did.
+2. A `wire:ignore`'d element's `x-init` can fire **more than once for the same DOM
+   node** - Livewire's morph hook and Alpine's own DOM observer can both end up
+   processing the same freshly-inserted node, and Alpine's "already has `x-data`"
+   guard doesn't prevent this because each processing pass can attach a distinct
+   Alpine scope. This showed up as two full xterm.js instances mounted inside one
+   terminal tab. A dataset-flag guard on the Blade side (`x-init="if
+   (!$refs.pane.dataset.foo) {...}"`) did **not** fix it - the two invocations
+   happened close enough together that both saw the flag unset. The fix has to
+   live in the plain-JS function itself, keyed off the real DOM element (e.g.
+   `if (el._mtpTerminal) return el._mtpTerminal;` at the top of
+   `resources/js/terminal.js`'s `initMtpTerminal()`), not in Alpine/Blade-level
+   state. Any future one-time-setup JS bridge on a `wire:ignore` element needs
+   this same plain-DOM idempotency guard.
+
 ## Architecture non-negotiables
 - Repository → Service → Action layering, DTOs across boundaries, Enums for every
   fixed value set. Full detail: [docs/Architecture.md](docs/Architecture.md).

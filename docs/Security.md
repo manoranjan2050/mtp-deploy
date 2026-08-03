@@ -66,10 +66,38 @@ model. Security-relevant constraints, restated:
   dynamic/configurable list.
 - The `sudoers` grant (production) is scoped to exact script paths with `NOPASSWD`,
   never `ALL=(ALL) NOPASSWD: ALL`.
-- Terminal (Module 8) sessions run as the connecting user's own Unix account where
-  possible; if a shared service account is unavoidable, root login over the browser
-  terminal is explicitly blocked and destructive command patterns
-  (`rm -rf /`, `mkfs`, etc.) require a typed confirmation phrase before execution.
+- Terminal (Module 8) is a deliberately different trust model from the above -
+  see the dedicated section below.
+
+## Terminal (Module 8, as built)
+- Unlike `SystemCommandService`'s fixed-whitelist model (used for automated,
+  unattended privileged operations), the Terminal module is, by design, arbitrary
+  shell access - that's the entire point of a "Terminal" feature in a
+  Forge/Ploi-style panel, the same trust boundary as a real SSH session. It is
+  **not** gated by `WhitelistedOperation`; it is gated by **who can reach it at
+  all**.
+- `ServerPolicy::useTerminal()` restricts the feature to `admin`/`super-admin`
+  only - not `developer`, not `viewer`. Unlike Website/Database policies, this is
+  not scoped to "sites I created": a server shell reaches every site and every
+  database on that server, which is far beyond what a developer role is trusted
+  with.
+- `DangerousCommandGuard` is a confirm-before-you-nuke-it safety net (a fixed,
+  auditable regex list - `rm -rf /`, `mkfs`, a `dd ... of=/dev/...`, the classic
+  fork bomb, `DROP DATABASE`/`DROP TABLE`/`TRUNCATE`, `shutdown`/`reboot`, and
+  Windows equivalents), not a security boundary in the allowlist sense - an admin
+  can always type "yes" and run the command anyway. It exists to catch a
+  fat-fingered destructive command, not to prevent a trusted admin from doing
+  their job.
+- Every submitted command (executed or blocked) is persisted to
+  `terminal_commands` - this **is** the audit log for this module, queryable per
+  user/session, not a separate generic activity-log entry per line (see
+  docs/Database.md).
+- **Scope note**: this is one-shot command execution per line (`cd` specially
+  intercepted to persist a working directory across commands), not a real
+  interactive PTY with a live shell environment - see CLAUDE.md for the full
+  reasoning. There is no exported-variable persistence between commands, which is
+  a real (if narrow) capability gap versus a genuine SSH session, not a security
+  gap - each command still runs as a fresh process under the same trust boundary.
 
 ## File Manager / Uploads (Module 7, as built)
 - Every operation is scoped to one website's `document_root` via

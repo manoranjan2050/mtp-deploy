@@ -33,6 +33,7 @@ class PermissionSeeder extends Seeder
         'create databases',
         'delete databases',
         'manage database privileges',
+        'use terminal',
     ];
 
     public function run(): void

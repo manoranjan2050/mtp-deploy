@@ -40,6 +40,7 @@ class RoleSeeder extends Seeder
             'create databases',
             'delete databases',
             'manage database privileges',
+            'use terminal',
         ]);
 
         // Developer manages websites they created (scoped in WebsitePolicy, not

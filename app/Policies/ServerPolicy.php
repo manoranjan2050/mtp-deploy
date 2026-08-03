@@ -1,0 +1,22 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Policies;
+
+use App\Models\Server;
+use App\Models\User;
+
+class ServerPolicy
+{
+    /**
+     * Shell access is admin/super-admin only - unlike Website/Database, this
+     * isn't scoped to "sites I created" for developers, since a terminal on
+     * the underlying server reaches every site and every database on it, far
+     * beyond what a developer role is trusted with.
+     */
+    public function useTerminal(User $user, Server $server): bool
+    {
+        return $user->can('use terminal');
+    }
+}

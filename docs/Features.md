@@ -135,10 +135,21 @@ module currently in progress.
       needed.
 
 ## Module 8 — Terminal
-- [ ] Browser SSH session (xterm.js)
-- [ ] Multiple tabs per server
-- [ ] Command history per user
-- [ ] Root-command protection (confirm-to-run guard for destructive patterns)
+- [x] Browser shell session (xterm.js) - **scoped as one-shot command execution
+      per line, not a true PTY/WebSocket bridge**; see CLAUDE.md for why. Real
+      xterm.js renders the UI; `cd` is special-cased so navigating directories
+      feels continuous even though each command is its own fresh process.
+      "SSH" in the original feature name specifically implied a remote
+      server - that's Module 18 (Multi Server)'s job; for now this runs
+      against the local server only, which is honest given only a local
+      server exists in this app pre-Module-18.
+- [x] Multiple tabs per server (multiple `TerminalSession` rows per user, each
+      with its own independent current directory and xterm.js instance)
+- [x] Command history per user (`terminal_commands` table - one row per
+      submitted line, including blocked ones)
+- [x] Root-command protection (confirm-to-run guard for destructive patterns -
+      `DangerousCommandGuard`'s fixed regex list; typing "yes" re-runs the
+      exact blocked command, anything else cancels it)
 
 ## Module 9 — Cloudflare
 - [ ] Connect API token

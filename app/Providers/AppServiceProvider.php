@@ -9,6 +9,7 @@ use App\Listeners\Auth\RecordLastLogin;
 use App\Models\Database;
 use App\Models\DatabaseUser;
 use App\Models\Deployment;
+use App\Models\Server;
 use App\Models\User;
 use App\Models\Website;
 use App\Policies\ActivityPolicy;
@@ -16,6 +17,7 @@ use App\Policies\DatabasePolicy;
 use App\Policies\DatabaseUserPolicy;
 use App\Policies\DeploymentPolicy;
 use App\Policies\RolePolicy;
+use App\Policies\ServerPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WebsitePolicy;
 use Filament\Auth\Events\Registered;
@@ -54,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Database::class, DatabasePolicy::class);
         Gate::policy(DatabaseUser::class, DatabaseUserPolicy::class);
         Gate::policy(Deployment::class, DeploymentPolicy::class);
+        Gate::policy(Server::class, ServerPolicy::class);
 
         Gate::before(fn (User $user, string $ability): ?true => $user->hasRole('super-admin') ? true : null);
     }

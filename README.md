@@ -16,8 +16,8 @@ See [docs/Vision.md](docs/Vision.md) for the full mission and non-goals.
 live checklist of what's currently being built.
 
 **Modules 1 (Authentication), 2 (Dashboard), 3 (Website Manager), 4 (Database
-Manager), 5 (Deployment), 6 (Laravel Deployment), and 7 (File Manager) are
-complete.** Currently in progress: Module 8 — Terminal.
+Manager), 5 (Deployment), 6 (Laravel Deployment), 7 (File Manager), and 8
+(Terminal) are complete.** Currently in progress: Module 9 — Cloudflare.
 
 ## Tech Stack
 

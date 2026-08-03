@@ -15,7 +15,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 5 | Deployment (Git providers, webhook, deploy button, rollback, history) | ✅ | 3 |
 | 6 | Laravel Deployment (composer/artisan pipeline steps) | ✅ | 5 |
 | 7 | File Manager (browse/upload/download/zip/edit) | ✅ | 3 |
-| 8 | Terminal (browser SSH via xterm.js) | ⬜ | 1 |
+| 8 | Terminal (browser SSH via xterm.js) | ✅ | 1 |
 | 9 | Cloudflare (DNS, tunnels, SSL, cache purge) | ⬜ | 3 |
 | 10 | SSL (Let's Encrypt, renewal, custom certs, wildcard) | ⬜ | 3, 9 |
 | 11 | Cron Manager | ⬜ | 3 |
@@ -30,7 +30,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete
 | 20 | AI Assistant (error explain, deploy suggestions, health, log analysis) | ⬜ | 14, 15 |
 
 ## Current Focus
-**Module 8 — Terminal.** Modules 1–7 are complete - 111 passing tests, Pint
+**Module 9 — Cloudflare.** Modules 1–8 are complete - 128 passing tests, Pint
 clean. See [TODO.md](../TODO.md) for the granular checklist, the stack deviations
 made during Module 1 (Filament v5/Livewire 4 instead of v4/3, for a real
 unpatched-CVE reason - see docs/Architecture.md), and a recurring class of bug this
@@ -50,6 +50,23 @@ Livewire component: a public property typed as a `Collection` of custom DTOs fai
 at render time ("Property type not supported in Livewire") because Livewire's synth
 system only (de)hydrates specific types. Use a `#[Computed]` method instead of a
 public property for any derived, non-serializable value.
+
+**Module 8 (Terminal) is deliberately scoped as one-shot command execution, not a
+true PTY/WebSocket bridge** - see CLAUDE.md for the full reasoning. In short: a
+real interactive PTY needs a long-lived process manager outside PHP-FPM/`artisan
+serve`'s normal request lifecycle (a Node sidecar with `node-pty`, or a full
+WebSocket daemon), which is out of proportion for what's buildable and testable in
+this single-machine dev environment right now. Instead, each submitted command runs
+as a fresh `Symfony\Process`, with `cd` specially intercepted to update the
+session's stored working directory - genuinely functional and fully testable, but
+honest that there's no persisted shell environment (exported variables don't carry
+between commands) and no raw keystroke echo. Also surfaced two more lessons: (1)
+the same `#[Computed]`-not-a-public-property Livewire rule from Module 7 applies to
+any array/collection of Eloquent models too, not just DTOs; (2) a `wire:ignore`'d
+Alpine component can have its `x-init` invoked more than once for the same DOM
+element (Livewire's morph hook and Alpine's own observer can both process an
+inserted node), so any one-time-setup JS bridge needs its own idempotency guard at
+the plain-DOM level, not just inside Alpine's `x-data` state.
 
 Checklist items deliberately deferred, not forgotten:
 - Module 3's "Website logs" - real log tailing is Module 14's job.

@@ -273,6 +273,41 @@ automatically.
 One new permission: `manage website files` (see docs/Security.md and
 `WebsitePolicy::manageFiles()`).
 
+## Module 8 — Terminal ✅ (as built)
+
+### `terminal_sessions`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| server_id | fk servers, cascadeOnDelete | only the local server exists pre-Module-18 |
+| user_id | fk users, cascadeOnDelete | one user's tabs are invisible to/unusable by another - see `runCommand`'s ownership check |
+| label | string nullable | e.g. "Tab 1" |
+| current_directory | string | updated in place by `cd`; not a website's document root, this is the whole server's filesystem |
+| closed_at | timestamp nullable | tabs aren't deleted on close, just marked closed, for history |
+| timestamps | | |
+
+### `terminal_commands`
+| Column | Type | Notes |
+|---|---|---|
+| id | bigint pk | |
+| terminal_session_id | fk terminal_sessions, cascadeOnDelete | |
+| user_id | fk users, cascadeOnDelete | |
+| command | text | the raw line the user submitted, including blocked ones |
+| output | longtext nullable | combined stdout+stderr |
+| exit_code | int nullable | `null` for a blocked command that never ran |
+| status | string, cast to `App\Enums\TerminalCommandStatus` default `executed` | executed/blocked |
+| executed_at | timestamp nullable | |
+| timestamps | | |
+
+Every submitted line gets a row here regardless of outcome - this table **is** the
+audit log for this module (no separate `activity()` call per command; that would
+be pure duplication of what's already a fully queryable, per-command record). A
+generic `activity('terminal')` entry is only written for session-lifecycle events
+(open/close), matching `BackupDatabaseAction`'s pattern from Module 4.
+
+One new permission: `use terminal`, admin/super-admin only (see docs/Security.md
+and `ServerPolicy::useTerminal()`).
+
 ## Forward-Looking Schema (sketched, subject to change per-module)
 
 ### `ssl_certificates` (Module 10)

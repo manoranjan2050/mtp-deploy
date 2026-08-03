@@ -36,4 +36,31 @@ return [
 
     'database_backups_path' => env('MTP_DATABASE_BACKUPS_PATH', storage_path('app/database-backups')),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Terminal (Module 8)
+    |--------------------------------------------------------------------------
+    |
+    | Starting working directory for a new terminal session, before any `cd`.
+    | On a real Linux server this would sensibly be `/root` or `/home/{user}`;
+    | this default is a harmless stand-in for local, non-Linux dev - tests
+    | always override it to a temp directory.
+    |
+    */
+
+    'terminal_default_directory' => env('MTP_TERMINAL_DEFAULT_DIRECTORY', sys_get_temp_dir()),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Terminal command timeout (seconds)
+    |--------------------------------------------------------------------------
+    |
+    | Every terminal command runs as a one-shot process with this hard
+    | timeout, so a hung/interactive command (e.g. one that waits on stdin
+    | this app never supplies) can't block a session forever.
+    |
+    */
+
+    'terminal_command_timeout' => env('MTP_TERMINAL_COMMAND_TIMEOUT', 30),
+
 ];

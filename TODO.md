@@ -600,6 +600,95 @@ risk surface in the app so far.
 - [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md`
       updated
 
+## Done — Module 8: Terminal
+
+Scoped as one-shot command execution per line, not a true PTY/WebSocket bridge -
+see CLAUDE.md for the full reasoning (no long-lived process manager exists outside
+PHP-FPM/`artisan serve`'s request lifecycle in this environment). `cd` is
+special-cased so directory navigation still feels continuous across commands.
+
+### Schema
+- [x] `terminal_sessions` (server_id, user_id, label, current_directory,
+      closed_at - not deleted on close, just marked, for history)
+- [x] `terminal_commands` (one row per submitted line, executed or blocked -
+      this table **is** the audit log for this module)
+- [x] `App\Enums\TerminalCommandStatus` (Executed/Blocked)
+
+### Backend
+- [x] `App\Services\Terminal\DangerousCommandGuard` - a fixed, auditable regex
+      blocklist (`rm -rf /`, `mkfs`, a `dd ... of=/dev/...`, the fork bomb,
+      `DROP DATABASE`/`TABLE`, `TRUNCATE`, `shutdown`/`reboot`, Windows
+      equivalents) - a confirm-before-you-nuke-it safety net, not an allowlist
+      security boundary (Terminal is arbitrary shell access by design)
+- [x] `App\Services\Terminal\TerminalCommandService::execute()` - real
+      `Symfony\Process::fromShellCommandline()` per command (shell semantics
+      like `&&`/pipes are expected here), `cd` intercepted to update
+      `current_directory` without spawning a process, 30s timeout per command
+- [x] `App\Policies\ServerPolicy::useTerminal()` - admin/super-admin only, not
+      scoped to "sites I created" like Website/Database (a server shell
+      reaches everything on that server); new `use terminal` permission
+- [x] `OpenTerminalSessionAction`/`CloseTerminalSessionAction` - session
+      lifecycle events get one `activity('terminal')` log entry each;
+      individual commands don't duplicate this since `terminal_commands`
+      already records them
+
+### Filament / UI
+- [x] `App\Filament\Pages\Terminal` (plain auto-discovered Filament page, not
+      a resource) - multiple tabs (`TerminalSession` rows), a "type yes to
+      confirm" flow for guard-blocked commands (server-side state, not a
+      Filament `->requiresConfirmation()` modal - consistent with those being
+      unreliable to drive in this session's browser automation)
+- [x] Real `@xterm/xterm` + `@xterm/addon-fit` (npm), a small hand-written
+      line-buffered input bridge (`resources/js/terminal.js`) - not a raw
+      PTY pass-through, Enter submits the buffered line via `$wire.call()`
+- [x] Monaco/full raw-keystroke PTY explicitly out of scope for this module,
+      matching Module 7's precedent of choosing the honestly-buildable option
+
+### Tests (`tests/Unit/Services/Terminal/`, `tests/Feature/Terminal/`, 21 new)
+- [x] `TerminalCommandServiceTest` - real spawned processes (`echo`/`exit`,
+      not mocked), real `cd` into a real temp subdirectory and back out,
+      the dangerous-command block + confirmed-bypass flow (using
+      `DROP DATABASE production` specifically because "DROP" isn't a real
+      executable anywhere, so even the "confirmed, actually runs" test can't
+      damage the test machine - never a genuine `rm -rf`/fork-bomb pattern)
+- [x] `ServerPolicyTest` - admin/super-admin only, developer/viewer denied
+- [x] `TerminalPageTest` - the real Livewire page: open/close tabs, run a
+      real command end to end, the confirm-with-"yes" flow, a developer
+      denied at `mount()` (403), and one user cannot call `runCommand`
+      against another user's session (ownership check, not just role)
+
+### Bugs found via this module and fixed
+- [x] `Terminal::$openSessions` (a public property returning an array of
+      `TerminalSession` Eloquent models) hit the same "Property type not
+      supported in Livewire" wall as Module 7's `Collection<FileEntryData>` -
+      fixed the same way, with `#[Computed]`.
+- [x] Opening a tab in the browser mounted **two** xterm.js instances inside
+      one terminal pane - Alpine's `x-init` on a `wire:ignore`'d element fired
+      twice for the same DOM node (Livewire's morph hook and Alpine's own
+      observer both processing the freshly-inserted node). A dataset-flag
+      guard in the Blade `x-init` expression did **not** fix it - both calls
+      happened before either flag-set was visible to the other. Fixed with an
+      idempotency guard inside the plain JS function itself
+      (`if (el._mtpTerminal) return el._mtpTerminal;`), immune to how many
+      times the Alpine wrapper invokes it.
+
+### Wrap-up
+- [x] `php artisan test` green (128 passed, 1 skipped - Linux-only)
+- [x] `vendor/bin/pint` clean
+- [x] Manually verified in browser: logged in, opened the Terminal page, saw
+      the real xterm.js instance mount (confirmed via DOM inspection, one
+      instance after the fix), and confirmed the full round trip end-to-end
+      by invoking the Livewire component's `runCommand` directly - a real
+      `echo` executed server-side, its output returned, and a matching
+      `terminal_commands` row persisted with the correct output/exit
+      code/status. (Simulated keystrokes through the browser automation
+      layer didn't reach xterm.js's input capture - consistent with this
+      session's documented non-compositing browser pane limitation, not an
+      application bug; the Livewire-level round trip is what actually proves
+      the feature works.)
+- [x] `docs/Database.md`, `docs/Features.md`, `docs/Roadmap.md`, `docs/Security.md`
+      updated
+
 ## Up Next
-- [ ] Module 8 — Terminal (see docs/Roadmap.md)
+- [ ] Module 9 — Cloudflare (see docs/Roadmap.md)
 - [ ] ...through Module 20, one at a time, per docs/Roadmap.md
