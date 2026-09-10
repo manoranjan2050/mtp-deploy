@@ -163,6 +163,10 @@ environment allows it (see [CLAUDE.md](CLAUDE.md) for the two deliberate,
 disclosed exceptions: Cloudflare and Let's Encrypt, both third-party services
 this environment has no real account/domain to test against live).
 
+## Reporting Issues
+
+Found a bug or have a feature request? Please open an issue at https://github.com/manoranjan2050/mtp-deploy/issues with steps to reproduce, your PHP/Laravel version, and any relevant log output.
+
 ## License
 
 Proprietary — all rights reserved (not yet decided; treat as closed-source for now).
